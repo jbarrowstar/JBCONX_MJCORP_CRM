@@ -1,0 +1,26 @@
+{
+  "name": "jbconx-crm-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JBConX Marketing CRM - Admin Web Portal & Field Agent Mobile Application",
+  "workspaces": [
+    "admin-web",
+    "agent-mobile"
+  ],
+  "scripts": {
+    "dev:admin": "npm run dev --workspace=admin-web",
+    "dev:mobile": "npm run dev --workspace=agent-mobile",
+    "dev": "concurrently -n \"ADMIN,MOBILE\" -c \"blue,green\" \"npm run dev:admin\" \"npm run dev:mobile\"",
+    "build": "npm run build --workspaces",
+    "build:admin": "npm run build --workspace=admin-web",
+    "build:mobile": "npm run build --workspace=agent-mobile",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces",
+    "preview:admin": "npm run preview --workspace=admin-web",
+    "preview:mobile": "npm run preview --workspace=agent-mobile"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
