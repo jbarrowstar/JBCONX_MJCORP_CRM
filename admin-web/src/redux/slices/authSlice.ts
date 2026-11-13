@@ -13,7 +13,7 @@ const initialState: AuthState = {
     id: 'usr_mock_admin_1',
     name: 'Alexander Wright',
     email: 'admin@jbconx.com',
-    role: 'SUPER_ADMIN',
+    role: 'ADMIN',
     createdAt: new Date().toISOString()
   },
   token: 'mock-jwt-token-admin',

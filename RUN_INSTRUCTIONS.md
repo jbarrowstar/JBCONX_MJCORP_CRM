@@ -25,60 +25,52 @@ cd jbconx-crm-frontend
 ## 2. Install Dependencies
 Run the installation command from the root directory:
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
-*(If npm reports peer dependency warnings on older node versions, run: `npm install --legacy-peer-deps`)*
+
+> **Note**: All packages for both Admin and Agent portals are installed into a single centralized `node_modules` at the root!
 
 ---
 
-## 3. Run the Applications
+## 3. Run the Unified Web Application
 
-### Option A: Run Both Apps Together (Recommended)
-To launch both the **Admin Web Portal** and the **Field Agent Portal** simultaneously with one command:
-```bash
-npm run dev
-```
-
----
-
-### Option B: Run Apps Individually
-
-#### To run the Admin Web Portal:
+Run this single command:
 ```bash
 npm run dev:admin
 ```
 - Open your browser at: **http://localhost:3000**
-- Pre-filled credentials: `admin@jbconx.com` / `password123`
 
-#### To run the Field Agent Portal (Mobile / Tablet / Laptop):
+---
+
+## 4. Single Login Page & Role-Based Access
+
+Anyone (Admin or Agent) goes to the **same URL (`http://localhost:3000`)** and logs in with their credentials:
+
+### 1. Admin Login
+* **Email**: `admin@jbconx.com`
+* **Password**: `password123`
+* **Role**: `ADMIN`
+* ➔ Automatically directs to **`/admin/dashboard`** with full management controls, multi-team live GPS tracking, lead assignment, and live Google Play & Apple App Store telemetry.
+
+### 2. Field Agent Login
+* **Agent Email / ID**: `agent.miller@jbconx.com`
+* **Password**: `password123`
+* **Role**: `AGENT`
+* ➔ Automatically directs to **`/agent/dashboard`** with the mobile & tablet field UI (GPS attendance punch in/out, site visit logging with camera photo upload, and assigned leads).
+
+---
+
+## 5. Tablet & Mobile Responsive View
+When field agents open the website on their tablet or phone (via Google Chrome or Safari):
+* The UI automatically adapts:
+  * On mobile phones: Bottom navigation bar + thumb-friendly actions.
+  * On tablets & laptops: Expands to full sidebar navigation.
+
+---
+
+## 6. Production Build
+To create a production-ready build:
 ```bash
-npm run dev:mobile
+npm run build:admin
 ```
-- Open your browser at: **http://localhost:3001**
-- Pre-filled credentials: `AGT-101` / `password123`
-
----
-
-## 4. Other Available Scripts
-
-- **Typecheck**: `npm run typecheck` (verifies TypeScript strict types across all modules)
-- **Production Build**: `npm run build` (builds production bundles for both apps)
-- **Preview Production**:
-  - `npm run preview:admin` (preview Admin on port 3000)
-  - `npm run preview:mobile` (preview Agent app on port 3001)
-
----
-
-## 5. Key Highlights for Your Demo
-
-1. **Admin Portal (Port 3000)**:
-   - Live Store Telemetry card tracking the verified Play Store app (`com.jbconx.mobile`) and App Store app (`id6761180171`).
-   - 3-Theme Switcher in the top header (*Sapphire Executive*, *Emerald Wealth*, *Royal Obsidian*).
-   - Full Lead Management with search, lifecycle status filtering, lead inspect drawer, and lead creation form.
-   - Field GPS Telemetry map simulation, shift attendance logs, and reports.
-
-2. **Agent Portal (Port 3001)**:
-   - Responsive across Phone, Tablet, and Desktop/Laptop displays.
-   - Interactive GPS punch-in / punch-out shift attendance.
-   - Customer meeting visit recorder with photo capture simulation.
-   - Prospect lead registration with mobile phone dialing.
+The optimized production bundle will be created in `admin-web/dist/`.

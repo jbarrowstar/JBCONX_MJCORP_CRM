@@ -1,5 +1,5 @@
-// User Roles
-export type UserRole = 'SUPER_ADMIN' | 'MARKETING_MANAGER' | 'TEAM_LEADER' | 'FIELD_AGENT';
+// User Roles - 2 Dedicated Roles
+export type UserRole = 'ADMIN' | 'AGENT';
 
 export interface User {
   id: string;

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AttendanceRecord, AttendanceStatus } from '@shared/types';
 import { formatDate } from '@shared/utils';
+import { exportToCSV } from '../../utils/exportUtils';
 
 const initialAttendance: AttendanceRecord[] = [
   {
@@ -69,6 +70,34 @@ export const AttendancePage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleExport = () => {
+    const exportData = filtered.map((r) => ({
+      agentCode: r.agentCode,
+      agentName: r.agentName,
+      date: r.date,
+      checkInTime: r.checkInTime || 'N/A',
+      checkOutTime: r.checkOutTime || 'N/A',
+      workingHours: r.workingHours ? `${r.workingHours} hrs` : '0',
+      status: r.status,
+      location: r.checkInLocation?.address || 'N/A',
+    }));
+
+    exportToCSV(
+      exportData,
+      'JBConX_Attendance_Report',
+      [
+        { key: 'agentCode', label: 'Agent Code' },
+        { key: 'agentName', label: 'Agent Name' },
+        { key: 'date', label: 'Date' },
+        { key: 'checkInTime', label: 'Check-In' },
+        { key: 'checkOutTime', label: 'Check-Out' },
+        { key: 'workingHours', label: 'Total Hours' },
+        { key: 'status', label: 'Status' },
+        { key: 'location', label: 'GPS Verified Location' },
+      ]
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -78,10 +107,11 @@ export const AttendancePage: React.FC = () => {
           <p className="text-sm text-slate-500">Audit daily agent check-in times, geo-fenced coordinates, and total field hours.</p>
         </div>
         <button
-          onClick={() => alert('Exporting attendance logs...')}
+          onClick={handleExport}
           className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm"
+          title="Download Excel CSV report"
         >
-          <Download className="w-3.5 h-3.5" /> Export Logs
+          <Download className="w-3.5 h-3.5 text-emerald-600" /> Export to Excel
         </button>
       </div>
 

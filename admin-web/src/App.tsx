@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { AppRoutes } from './routes';
+import { PWAInstallPrompt } from './components/common/PWAInstallPrompt';
 import './styles/globals.css';
 
 export const App: React.FC = () => {
@@ -10,6 +11,7 @@ export const App: React.FC = () => {
     <Provider store={store}>
       <BrowserRouter>
         <AppRoutes />
+        <PWAInstallPrompt />
       </BrowserRouter>
     </Provider>
   );

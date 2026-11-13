@@ -50,7 +50,7 @@ export const AdminLoginPage: React.FC = () => {
               id: 'usr_admin_01',
               name: 'Alexander Wright',
               email: data.email,
-              role: 'SUPER_ADMIN',
+              role: 'ADMIN',
               createdAt: new Date().toISOString(),
             },
             token: 'mock-jwt-admin-token-xyz',

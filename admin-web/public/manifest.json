@@ -1,0 +1,20 @@
+{
+  "short_name": "JBConX CRM",
+  "name": "JBConX Marketing CRM Platform",
+  "description": "Commercial Marketing & Field Operations CRM for JBConX",
+  "icons": [
+    {
+      "src": "/icon-512.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0F1E36",
+  "theme_color": "#274C77",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
+

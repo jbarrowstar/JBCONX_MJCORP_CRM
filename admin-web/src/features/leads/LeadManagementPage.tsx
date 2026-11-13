@@ -13,6 +13,7 @@ import {
 import { Lead, LeadStatus } from '@shared/types';
 import { LEAD_STATUS_CONFIG } from '@shared/constants';
 import { formatDate } from '@shared/utils';
+import { exportToCSV } from '../../utils/exportUtils';
 
 const initialLeads: Lead[] = [
   {
@@ -155,6 +156,28 @@ export const LeadManagementPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleExport = () => {
+    exportToCSV(
+      filteredLeads,
+      'JBConX_Leads_Report',
+      [
+        { key: 'leadCode', label: 'Lead ID' },
+        { key: 'customerName', label: 'Customer Name' },
+        { key: 'mobileNumber', label: 'Mobile Number' },
+        { key: 'email', label: 'Email' },
+        { key: 'city', label: 'City' },
+        { key: 'state', label: 'State' },
+        { key: 'leadSource', label: 'Lead Source' },
+        { key: 'interestedService', label: 'Interested Service' },
+        { key: 'assignedAgentName', label: 'Assigned Agent' },
+        { key: 'teamName', label: 'Team Squad' },
+        { key: 'status', label: 'Current Status' },
+        { key: 'remarks', label: 'Remarks / Notes' },
+        { key: 'createdAt', label: 'Creation Date' },
+      ]
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -165,10 +188,11 @@ export const LeadManagementPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => alert('Exporting leads in CSV format...')}
+            onClick={handleExport}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+            title="Download Excel CSV file"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5 text-emerald-600" /> Export to Excel
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
@@ -236,7 +260,29 @@ export const LeadManagementPage: React.FC = () => {
                   bg: 'bg-slate-100 border-slate-200',
                 };
 
-                return (
+                const handleExport = () => {
+    exportToCSV(
+      filteredLeads,
+      'JBConX_Leads_Report',
+      [
+        { key: 'leadCode', label: 'Lead ID' },
+        { key: 'customerName', label: 'Customer Name' },
+        { key: 'mobileNumber', label: 'Mobile Number' },
+        { key: 'email', label: 'Email' },
+        { key: 'city', label: 'City' },
+        { key: 'state', label: 'State' },
+        { key: 'leadSource', label: 'Lead Source' },
+        { key: 'interestedService', label: 'Interested Service' },
+        { key: 'assignedAgentName', label: 'Assigned Agent' },
+        { key: 'teamName', label: 'Team Squad' },
+        { key: 'status', label: 'Current Status' },
+        { key: 'remarks', label: 'Remarks / Notes' },
+        { key: 'createdAt', label: 'Creation Date' },
+      ]
+    );
+  };
+
+  return (
                   <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4">
                       <div className="font-semibold text-slate-900">{lead.customerName}</div>

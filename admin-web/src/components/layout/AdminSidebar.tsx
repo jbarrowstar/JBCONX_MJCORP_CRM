@@ -25,17 +25,17 @@ interface SidebarItem {
 }
 
 const navigationItems: SidebarItem[] = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Lead Management', path: '/leads', icon: Users },
-  { name: 'Agent Management', path: '/agents', icon: UserCheck },
-  { name: 'Team Management', path: '/teams', icon: Network },
-  { name: 'Field Tracking', path: '/tracking', icon: MapPin },
-  { name: 'Visits & Attendance', path: '/attendance', icon: Clock },
-  { name: 'Follow-ups & Tasks', path: '/followups', icon: CheckSquare },
-  { name: 'Customer Visits', path: '/visits', icon: CalendarCheck },
-  { name: 'Registration & Onboarding', path: '/onboarding', icon: FileCheck2 },
-  { name: 'Reports & Analytics', path: '/reports', icon: BarChart3 },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Lead Management', path: '/admin/leads', icon: Users },
+  { name: 'Agent Management', path: '/admin/agents', icon: UserCheck },
+  { name: 'Team Management', path: '/admin/teams', icon: Network },
+  { name: 'Field Tracking', path: '/admin/tracking', icon: MapPin },
+  { name: 'Visits & Attendance', path: '/admin/attendance', icon: Clock },
+  { name: 'Follow-ups & Tasks', path: '/admin/followups', icon: CheckSquare },
+  { name: 'Customer Visits', path: '/admin/visits', icon: CalendarCheck },
+  { name: 'Registration & Onboarding', path: '/admin/onboarding', icon: FileCheck2 },
+  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3 },
+  { name: 'Settings', path: '/admin/settings', icon: Settings },
 ];
 
 export const AdminSidebar: React.FC = () => {
@@ -56,7 +56,7 @@ export const AdminSidebar: React.FC = () => {
       <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-slate-700" />
-          <span className="text-xs font-bold text-slate-700">{user?.role || 'SUPER_ADMIN'}</span>
+          <span className="text-xs font-bold text-slate-700">{user?.role || 'ADMIN'}</span>
         </div>
         <span className="text-[10px] font-bold text-slate-400 font-mono">{themeConfig.badge}</span>
       </div>

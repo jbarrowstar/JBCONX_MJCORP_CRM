@@ -1,7 +1,15 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAppSelector } from '../redux/hooks';
+
+// Auth
+import { UnifiedLoginPage } from '../features/auth/UnifiedLoginPage';
+
+// Layouts
 import { AdminLayout } from '../components/layout/AdminLayout';
-import { AdminLoginPage } from '../features/auth/AdminLoginPage';
+import { MobileLayout } from '../components/mobile/layout/MobileLayout';
+
+// Admin Features
 import { AdminDashboardPage } from '../features/dashboard/AdminDashboardPage';
 import { LeadManagementPage } from '../features/leads/LeadManagementPage';
 import { AgentManagementPage } from '../features/agents/AgentManagementPage';
@@ -13,21 +21,53 @@ import { FollowupsPage } from '../features/followups/FollowupsPage';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
-import { useAppSelector } from '../redux/hooks';
+
+// Agent Features
+import { AgentDashboardPage } from '../features/agent/dashboard/AgentDashboardPage';
+import { AgentLeadsPage } from '../features/agent/leads/AgentLeadsPage';
+import { AgentAttendancePage } from '../features/agent/attendance/AgentAttendancePage';
+import { AgentVisitsPage } from '../features/agent/visits/AgentVisitsPage';
+import { AgentProfilePage } from '../features/agent/profile/AgentProfilePage';
 
 export const AppRoutes: React.FC = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  // Role Checks
+  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
+  const isAgent = isAuthenticated && user?.role === 'AGENT';
 
   return (
     <Routes>
-      <Route path="/login" element={<AdminLoginPage />} />
-
-      {/* Protected Routes */}
+      {/* Unified Login Route */}
       <Route
-        path="/"
-        element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}
+        path="/login"
+        element={
+          isAuthenticated ? (
+            user?.role === 'ADMIN' ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <Navigate to="/agent/dashboard" replace />
+            )
+          ) : (
+            <UnifiedLoginPage />
+          )
+        }
+      />
+
+      {/* Admin Role Guarded Workspace */}
+      <Route
+        path="/admin"
+        element={
+          isAdmin ? (
+            <AdminLayout />
+          ) : isAgent ? (
+            <Navigate to="/agent/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="leads" element={<LeadManagementPage />} />
         <Route path="agents" element={<AgentManagementPage />} />
@@ -41,7 +81,58 @@ export const AppRoutes: React.FC = () => {
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Agent Role Guarded Workspace */}
+      <Route
+        path="/agent"
+        element={
+          isAgent ? (
+            <MobileLayout />
+          ) : isAdmin ? (
+            <Navigate to="/admin/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      >
+        <Route index element={<Navigate to="/agent/dashboard" replace />} />
+        <Route path="dashboard" element={<AgentDashboardPage />} />
+        <Route path="leads" element={<AgentLeadsPage />} />
+        <Route path="attendance" element={<AgentAttendancePage />} />
+        <Route path="visits" element={<AgentVisitsPage />} />
+        <Route path="profile" element={<AgentProfilePage />} />
+      </Route>
+
+      {/* Root redirect depending on role */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            user?.role === 'ADMIN' ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <Navigate to="/agent/dashboard" replace />
+            )
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
+      {/* Catch-all */}
+      <Route
+        path="*"
+        element={
+          isAuthenticated ? (
+            user?.role === 'ADMIN' ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <Navigate to="/agent/dashboard" replace />
+            )
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
     </Routes>
   );
 };
