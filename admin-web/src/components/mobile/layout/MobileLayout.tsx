@@ -34,8 +34,14 @@ export const MobileLayout: React.FC = () => {
       {/* Tablet & Desktop Side Drawer Navigation */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 flex-shrink-0 min-h-screen shadow-sm">
         {/* Brand Header */}
-        <div className={`h-16 flex items-center px-5 border-b border-slate-100 bg-gradient-to-r ${themeConfig.headerGrad} shadow-sm`}>
-          <JBConXLogo size="md" variant="light" tagline="FIELD AGENT PORTAL" />
+        <div className={`h-16 flex items-center justify-between px-4 border-b border-white/10 bg-gradient-to-r ${themeConfig.headerGrad} shadow-sm`}>
+          <div className="h-10 px-3 py-1 bg-white rounded-xl shadow-sm flex items-center justify-center border border-white/20">
+            <img src="/jbconx-logo.png" alt="JBConX" className="h-7 w-auto object-contain" />
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Agent</span>
+          </div>
         </div>
 
         {/* User Card */}
@@ -110,7 +116,9 @@ export const MobileLayout: React.FC = () => {
 
         {/* Mobile Top Header (with Official JBConX Logo) */}
         <div className="md:hidden flex items-center justify-between p-3 bg-white border-b border-slate-200">
-          <JBConXLogo size="sm" variant="dark" tagline="AGENT" />
+          <div className="flex items-center gap-2">
+            <img src="/jbconx-logo.png" alt="JBConX" className="h-7 w-auto object-contain" />
+          </div>
           <MobileThemeSelector />
         </div>
 

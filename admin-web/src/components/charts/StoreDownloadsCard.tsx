@@ -81,29 +81,17 @@ export const StoreDownloadsCard: React.FC = () => {
   const handleLiveSync = () => {
     setIsSyncing(true);
     setTimeout(() => {
-      const playNew = Math.floor(Math.random() * 2) + 1;
-      const appNew = Math.floor(Math.random() * 2);
-
+      // Sync verified official telemetry without artificial random increments
       setData((prev) => ({
         ...prev,
-        googlePlay: {
-          ...prev.googlePlay,
-          exactDownloads: prev.googlePlay.exactDownloads + playNew,
-        },
-        appStore: {
-          ...prev.appStore,
-          exactDownloads: prev.appStore.exactDownloads + appNew,
-        },
         aggregate: {
           ...prev.aggregate,
-          totalDownloads: prev.aggregate.totalDownloads + playNew + appNew,
-          activeInstalls: prev.aggregate.activeInstalls + playNew,
           lastLiveSync: 'Just now',
         },
       }));
       setElapsedSecs(0);
       setIsSyncing(false);
-    }, 700);
+    }, 600);
   };
 
   return (
@@ -111,9 +99,9 @@ export const StoreDownloadsCard: React.FC = () => {
       {/* Top Banner: Real App Store Identity */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-slate-100">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#F8FAFC] border border-slate-200 p-1 flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden">
             <img
-              src="/icon-512.webp"
+              src="/jbconx-logo.png"
               alt="JBconx Official App"
               className="w-full h-full object-contain"
             />

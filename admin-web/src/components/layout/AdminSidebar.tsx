@@ -48,8 +48,14 @@ export const AdminSidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 transition-all duration-300">
       {/* Brand Header with Logo */}
-      <div className={`h-16 flex items-center px-5 border-b border-slate-100 bg-gradient-to-r ${themeConfig.headerGrad} shadow-sm`}>
-        <JBConXLogo size="md" variant="light" tagline="ENTERPRISE ADMIN" />
+      <div className={`h-16 flex items-center justify-between px-4 border-b border-white/10 bg-gradient-to-r ${themeConfig.headerGrad} shadow-sm`}>
+        <div className="h-12 px-3 py-1 bg-white rounded-xl shadow-md flex items-center justify-center border border-white/30">
+          <img src="/jbconx-logo.png" alt="JBConX" className="h-10 w-auto object-contain" />
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white text-[11px] font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>CRM</span>
+        </div>
       </div>
 
       {/* Role Badge */}

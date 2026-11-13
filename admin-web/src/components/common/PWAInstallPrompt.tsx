@@ -36,7 +36,7 @@ export const PWAInstallPrompt: React.FC = () => {
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50 bg-white border border-slate-200 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center p-1 border border-slate-200">
-          <img src="/icon-512.webp" alt="JBConX" className="w-full h-full object-contain" />
+          <img src="/jbconx-logo.png" alt="JBConX" className="w-full h-full object-contain" />
         </div>
         <div>
           <h4 className="text-xs font-black text-slate-900">Install JBConX CRM</h4>
