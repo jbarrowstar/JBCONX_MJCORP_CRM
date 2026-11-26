@@ -32,8 +32,8 @@ export const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   if (status === 'restoring') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#E7ECEF] text-slate-500 text-xs font-medium" role="status">
-        <span className="inline-block w-5 h-5 mr-3 border-2 border-[#274C77] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500 text-xs font-medium" role="status">
+        <span className="inline-block w-5 h-5 mr-3 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
         Restoring your session…
       </div>
     );

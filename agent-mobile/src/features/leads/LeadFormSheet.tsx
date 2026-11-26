@@ -83,14 +83,14 @@ export const LeadFormSheet: React.FC<{ lead?: LeadDto; onClose: () => void; onSa
     }
   };
 
-  const fe = (k: string) => (errors[k] ? <p className="text-[11px] text-rose-600 mt-1">{errors[k]}</p> : null);
+  const fe = (k: string) => (errors[k] ? <p className="text-xs text-rose-600 mt-1">{errors[k]}</p> : null);
 
   return (
     <Sheet title={editing ? `Edit ${lead!.leadCode}` : 'New lead'} onClose={onClose} busy={busy} tall>
       <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="p-5 space-y-4" noValidate>
-        {serverError && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{serverError}</div>}
+        {serverError && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{serverError}</div>}
         {duplicate && (
-          <button type="button" disabled={busy} onClick={() => void save(true)} className="w-full py-2.5 text-xs font-bold text-white bg-amber-600 rounded-xl">
+          <button type="button" disabled={busy} onClick={() => void save(true)} className="btn btn-lg w-full text-white bg-amber-600 hover:bg-amber-700">
             Create anyway (duplicate number)
           </button>
         )}
@@ -162,7 +162,7 @@ export const LeadFormSheet: React.FC<{ lead?: LeadDto; onClose: () => void; onSa
             <input id="m-lf-fu" type="datetime-local" className={fieldClass} value={v.followUpAt} onChange={(e) => set('followUpAt', e.target.value)} />
           </div>
         )}
-        <button type="submit" disabled={busy} className="w-full py-3.5 text-xs font-bold text-white bg-[#274C77] rounded-xl disabled:opacity-60">
+        <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
           {busy ? 'Saving…' : editing ? 'Save changes' : 'Create lead'}
         </button>
       </form>

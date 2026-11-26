@@ -73,14 +73,14 @@ export const RecordVisitSheet: React.FC<{ onClose: () => void; initialLeadId?: s
     }
   };
 
-  const fe = (k: string) => (errors[k] ? <p className="text-[11px] text-rose-600 mt-1">{errors[k]}</p> : null);
+  const fe = (k: string) => (errors[k] ? <p className="text-xs text-rose-600 mt-1">{errors[k]}</p> : null);
 
   return (
     <Sheet title="Record visit" onClose={onClose} busy={busy} tall>
       <form onSubmit={submit} className="p-5 space-y-4" noValidate>
-        {serverError && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{serverError}</div>}
+        {serverError && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{serverError}</div>}
 
-        <div className={`rounded-2xl border p-3 text-xs ${loc !== 'locating' && loc.ok ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`} data-testid="location-card">
+        <div className={`rounded-lg border p-3 text-[13px] ${loc !== 'locating' && loc.ok ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`} data-testid="location-card">
           {loc === 'locating' ? (
             <p className="flex items-center gap-2 text-slate-600"><Loader2 className="w-4 h-4 animate-spin" /> Finding your location…</p>
           ) : loc.ok ? (
@@ -91,7 +91,7 @@ export const RecordVisitSheet: React.FC<{ onClose: () => void; initialLeadId?: s
           ) : (
             <div className="space-y-2">
               <p role="alert" className="text-rose-700" data-testid="location-error">{loc.message}</p>
-              <button type="button" onClick={() => void locate()} className="px-3 py-1.5 font-bold text-[#274C77] bg-white border border-slate-200 rounded-lg">Try again</button>
+              <button type="button" onClick={() => void locate()} className="px-3 py-1.5 font-bold text-brand-600 bg-white border border-slate-200 rounded-lg">Try again</button>
             </div>
           )}
           {fe('location')}
@@ -122,10 +122,10 @@ export const RecordVisitSheet: React.FC<{ onClose: () => void; initialLeadId?: s
         </div>
         {!savedVisit && <PhotoPicker files={photos} onChange={setPhotos} />}
 
-        <button type="submit" disabled={busy} className="w-full py-3.5 text-xs font-bold text-white bg-[#274C77] rounded-xl disabled:opacity-60">
+        <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
           {busy ? (u.isLoading ? 'Uploading photos…' : 'Saving…') : savedVisit ? 'Retry photo upload' : 'Save visit'}
         </button>
-        {savedVisit && <button type="button" onClick={() => finish(savedVisit)} className="w-full py-2.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl">Skip photos and finish</button>}
+        {savedVisit && <button type="button" onClick={() => finish(savedVisit)} className="btn btn-secondary btn-lg w-full">Skip photos and finish</button>}
       </form>
     </Sheet>
   );

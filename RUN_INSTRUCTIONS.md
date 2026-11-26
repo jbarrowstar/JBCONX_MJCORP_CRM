@@ -42,21 +42,28 @@ npm run dev:admin
 
 ---
 
-## 4. Single Login Page & Role-Based Access
+## 4. Sign-in & Role-Based Access
 
-Anyone (Admin or Agent) goes to the **same URL (`http://localhost:3000`)** and logs in with their credentials:
+There are two separate apps:
 
-### 1. Admin Login
-* **Email**: `admin@jbconx.com`
-* **Password**: `password123`
-* **Role**: `ADMIN`
-* ➔ Automatically directs to **`/admin/dashboard`** with full management controls, multi-team live GPS tracking, lead assignment, and live Google Play & Apple App Store telemetry.
+| App | URL | Who signs in | Lands on |
+| --- | --- | --- | --- |
+| Admin web portal | http://localhost:3000 | Super Admin (`super_admin`), Marketing Manager (`marketing_manager`), Team Leader (`team_leader`) | `/admin/dashboard` |
+| Field Agent portal | http://localhost:3001 | Field Agent (`field_agent`) | `/dashboard` |
 
-### 2. Field Agent Login
-* **Agent Email / ID**: `agent.miller@jbconx.com`
-* **Password**: `password123`
-* **Role**: `AGENT`
-* ➔ Automatically directs to **`/agent/dashboard`** with the mobile & tablet field UI (GPS attendance punch in/out, site visit logging with camera photo upload, and assigned leads).
+Each app rejects the other app's roles. Run both with `npm run dev`.
+
+**With the real backend** (`VITE_API_BASE_URL`, default `http://localhost:5000/api/v1`): sign in with accounts that
+exist in the backend database. The first Super Admin is created on the backend with `npm run create:admin`;
+create agents from **Staff Management** in the admin portal.
+
+**Without the backend (development-only mock mode):** run `npm run dev:mock` and sign in with:
+
+* Admin portal: `admin@jbconx.com` / `password123` (Super Admin)
+* Agent portal: `agent.miller@jbconx.com` / `password123` (Field Agent)
+
+Mock mode uses sample data stored in your browser only (nothing is saved to MongoDB) and is removed from
+production builds. See [`docs/MOCK_MODE.md`](docs/MOCK_MODE.md).
 
 ---
 

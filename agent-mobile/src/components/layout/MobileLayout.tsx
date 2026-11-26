@@ -1,141 +1,142 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Clock, 
-  CalendarCheck, 
-  User, 
-  ShieldCheck, 
-  LogOut 
-} from 'lucide-react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, Clock, CalendarCheck, User, LogOut, CalendarDays } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { signOut } from '../../redux/session';
 import { ToastHost } from '../common/ToastHost';
-import { MobileThemeSelector } from '../common/MobileThemeSelector';
-import { CRM_THEMES } from '@shared/constants/themes';
 import { JBConXLogo } from '@shared/components/JBConXLogo';
 
+const NAV_ITEMS = [
+  { label: 'Home', title: 'Home', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Leads', title: 'My leads', path: '/leads', icon: Users },
+  { label: 'Attendance', title: 'Attendance', path: '/attendance', icon: Clock },
+  { label: 'Visits', title: 'Customer visits', path: '/visits', icon: CalendarCheck },
+  { label: 'Profile', title: 'My profile', path: '/profile', icon: User },
+];
+
+const initials = (name?: string) => (name ?? '?').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+
+/**
+ * Field Agent portal shell.
+ * md and up: a desktop website layout (sidebar + top bar + wide content).
+ * Phones: compact top bar + thumb-friendly bottom navigation (also used by the Android build).
+ */
 export const MobileLayout: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { pathname } = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const currentTheme = useAppSelector((state) => state.ui.theme) || 'classic-blue';
-  const themeConfig = CRM_THEMES[currentTheme] || CRM_THEMES['classic-blue'];
-
-  const navItems = [
-    { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Leads', path: '/leads', icon: Users },
-    { label: 'Attendance', path: '/attendance', icon: Clock },
-    { label: 'Visits', path: '/visits', icon: CalendarCheck },
-    { label: 'Profile', path: '/profile', icon: User },
-  ];
+  const current = NAV_ITEMS.find((i) => pathname.startsWith(i.path));
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row transition-colors duration-300" style={{ backgroundColor: themeConfig.bgCanvas }}>
-      {/* Tablet & Desktop Side Drawer Navigation */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 flex-shrink-0 min-h-screen shadow-sm">
-        {/* Brand Header */}
-        <div className={`h-16 flex items-center px-5 border-b border-slate-100 bg-gradient-to-r ${themeConfig.headerGrad} shadow-sm`}>
-          <JBConXLogo size="md" variant="light" tagline="FIELD AGENT PORTAL" />
+    <div className="min-h-screen md:h-screen md:flex md:overflow-hidden bg-canvas">
+      {/* Sidebar (tablet & desktop) */}
+      <aside className="hidden md:flex flex-col w-60 lg:w-64 flex-shrink-0 bg-white border-r border-slate-200/80">
+        <div className="h-16 flex items-center px-5 border-b border-slate-100 flex-shrink-0">
+          <JBConXLogo size="md" variant="dark" tagline="Field Agent Portal" />
         </div>
 
-        {/* User Card */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div 
-              className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center text-sm shadow-md"
-              style={{ backgroundColor: themeConfig.secondary }}
-            >
-              {user?.name?.[0]?.toUpperCase() || '?'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
-              <p className="text-[11px] text-slate-500 truncate">{user?.team?.name ?? 'No team yet'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Theme Picker in Sidebar */}
-        <div className="px-4 py-2 border-b border-slate-100">
-          <MobileThemeSelector />
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    isActive
-                      ? themeConfig.activeItemBg
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+        <nav className="flex-1 min-h-0 overflow-y-auto scroll-thin px-3 py-4" aria-label="Main navigation">
+          <p className="px-3 mb-1.5 text-2xs font-semibold uppercase tracking-[0.08em] text-slate-400">Workspace</p>
+          <ul className="space-y-0.5">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `group relative flex items-center gap-3 h-9 px-3 rounded-lg text-[13px] font-medium transition-colors ${
+                        isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-brand-600" aria-hidden />}
+                        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                        <span>{item.title}</span>
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        {/* Sign Out Button in Desktop/Tablet Sidebar */}
-        <div className="p-4 border-t border-slate-100">
-          <button
-            onClick={() => void signOut(dispatch)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-100"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
+        <div className="p-3 border-t border-slate-100 flex-shrink-0">
+          <div className="flex items-center gap-3 px-2 py-1.5">
+            <span className="avatar w-9 h-9 text-xs">{initials(user?.name)}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-slate-900 truncate">{user?.name}</p>
+              <p className="text-2xs text-slate-500 truncate">{user?.team?.name ?? 'No team yet'}</p>
+            </div>
+            <button onClick={() => void signOut(dispatch)} className="icon-btn w-8 h-8 hover:!text-rose-600 hover:!bg-rose-50" aria-label="Sign Out" title="Sign out">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto w-full pb-20 md:pb-6">
-        {/* Tablet / Desktop Top Header Bar */}
-        <header className="hidden md:flex items-center justify-between h-16 px-8 bg-white border-b border-slate-200">
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-bold">
-            <ShieldCheck className="w-4 h-4" style={{ color: themeConfig.secondary }} />
-            <span>Active Suite Theme: <strong style={{ color: themeConfig.secondary }}>{themeConfig.name}</strong></span>
+      <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden">
+        {/* Top bar (tablet & desktop) */}
+        <header className="hidden md:flex items-center justify-between gap-4 h-16 px-6 lg:px-8 bg-white/90 backdrop-blur border-b border-slate-200/80 flex-shrink-0">
+          <div className="flex items-center gap-1.5 text-[13px] min-w-0">
+            <span className="text-slate-400">Field Agent Portal</span>
+            {current && (
+              <>
+                <span className="text-slate-300">/</span>
+                <span className="font-medium text-slate-800 truncate">{current.title}</span>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-bold">{user?.employeeCode ?? ''}</span>
+          <div className="flex items-center gap-4 text-[13px]">
+            <span className="hidden lg:inline-flex items-center gap-1.5 text-slate-500">
+              <CalendarDays className="w-4 h-4 text-slate-400" /> {today}
+            </span>
+            {user?.employeeCode && <span className="badge bg-slate-50 text-slate-600 border-slate-200 font-mono">{user.employeeCode}</span>}
           </div>
         </header>
 
-        {/* Mobile Top Header (with Official JBConX Logo) */}
-        <div className="md:hidden flex items-center justify-between p-3 bg-white border-b border-slate-200">
-          <JBConXLogo size="sm" variant="dark" tagline="AGENT" />
-          <MobileThemeSelector />
-        </div>
+        {/* Top bar (phones) */}
+        <header className="md:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white/95 backdrop-blur border-b border-slate-200/80">
+          <JBConXLogo size="sm" variant="dark" tagline="Field Agent" />
+          <span className="avatar w-8 h-8 text-2xs" aria-hidden>{initials(user?.name)}</span>
+        </header>
 
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8">
-          <Outlet />
+        <main className="flex-1 md:min-h-0 md:overflow-y-auto scroll-thin px-4 pt-5 pb-24 sm:px-6 md:pb-8 lg:px-8 lg:pt-7">
+          <div className="w-full max-w-[1280px] mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-2 z-50 flex items-center justify-around shadow-lg">
-        {navItems.map((item) => {
+      {/* Bottom navigation (phones) */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex items-stretch justify-around"
+        aria-label="Main navigation"
+      >
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1 text-[10px] font-bold transition-all ${
-                  isActive ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+                `flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${
+                  isActive ? 'text-brand-700' : 'text-slate-400 hover:text-slate-600'
                 }`
               }
-              style={({ isActive }) => (isActive ? { color: themeConfig.secondary } : {})}
             >
-              <Icon className="w-5 h-5" />
-              <span>{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  <span className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors ${isActive ? 'bg-brand-50' : ''}`}>
+                    <Icon className="w-5 h-5" />
+                  </span>
+                  <span>{item.label}</span>
+                </>
+              )}
             </NavLink>
           );
         })}

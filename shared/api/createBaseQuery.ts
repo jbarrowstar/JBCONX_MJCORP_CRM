@@ -6,6 +6,11 @@ export interface CreateBaseQueryOptions {
   getToken: (api: Pick<BaseQueryApi, 'getState'>) => string | null;
   /** Called when the server says the session is no longer valid (expired / revoked / deactivated). */
   onUnauthorized: (api: BaseQueryApi) => void;
+  /**
+   * DEVELOPMENT-ONLY: answers requests in the browser instead of calling the API (mock mode).
+   * Undefined in production builds; when undefined the real network transport is used.
+   */
+  mockTransport?: (args: string | FetchArgs, token: string | null) => Promise<{ data: unknown } | { error: { status: number; data: unknown } }>;
 }
 
 const SESSION_CODES = new Set(['AUTH_REQUIRED', 'AUTH_INVALID_TOKEN']);
@@ -26,7 +31,9 @@ export const createBaseQuery = (opts: CreateBaseQueryOptions): BaseQueryFn<strin
   });
 
   return async (args, api, extra) => {
-    const result = await raw(args, api, extra);
+    const result = opts.mockTransport
+      ? ((await opts.mockTransport(args, opts.getToken(api))) as Awaited<ReturnType<typeof raw>>)
+      : await raw(args, api, extra);
     if (result.error && result.error.status === 401) {
       const data = result.error.data as { error?: { code?: string } } | undefined;
       if (data?.error?.code && SESSION_CODES.has(data.error.code)) {

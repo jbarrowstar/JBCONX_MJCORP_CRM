@@ -62,7 +62,7 @@ export const AssignLeadModal: React.FC<Props> = ({ leads, onClose, onDone }) => 
     }
   };
 
-  const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const input = 'control w-full';
   const nameOf = (id: string) => leads.find((l) => l.id === id)?.leadCode ?? id;
 
   return (
@@ -76,7 +76,7 @@ export const AssignLeadModal: React.FC<Props> = ({ leads, onClose, onDone }) => 
         )}
         {!isLeader && (
           <div>
-            <label htmlFor="al-team" className="block text-xs font-semibold text-slate-700 mb-1">Team</label>
+            <label htmlFor="al-team" className="label">Team</label>
             <select id="al-team" value={teamId} onChange={(e) => { setTeamId(e.target.value); setAgentId(''); }} className={input}>
               <option value="">No team</option>
               {teams?.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -84,7 +84,7 @@ export const AssignLeadModal: React.FC<Props> = ({ leads, onClose, onDone }) => 
           </div>
         )}
         <div>
-          <label htmlFor="al-agent" className="block text-xs font-semibold text-slate-700 mb-1">Agent</label>
+          <label htmlFor="al-agent" className="label">Agent</label>
           <select id="al-agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={input}>
             <option value="">{bulk ? 'Team only (no specific agent)' : 'Unassign / team only'}</option>
             {agents?.items.map((a) => <option key={a.id} value={a.id}>{a.name}{a.team ? ` — ${a.team.name}` : ''}</option>)}
@@ -95,9 +95,9 @@ export const AssignLeadModal: React.FC<Props> = ({ leads, onClose, onDone }) => 
             {failures.map((f) => <li key={f.id}><strong>{nameOf(f.id)}</strong>: {f.reason}</li>)}
           </ul>
         )}
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">{failures.length ? 'Close' : 'Cancel'}</button>
-          <button type="submit" disabled={busy} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm disabled:opacity-60">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={busy} className="btn btn-ghost">{failures.length ? 'Close' : 'Cancel'}</button>
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy ? 'Assigning…' : 'Assign'}
           </button>
         </div>

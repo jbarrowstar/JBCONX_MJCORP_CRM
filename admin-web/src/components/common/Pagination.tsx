@@ -4,28 +4,18 @@ import type { PageMeta } from '@shared/api/types';
 
 export const Pagination: React.FC<{ meta: PageMeta; onPage: (page: number) => void; busy?: boolean }> = ({ meta, onPage, busy }) => {
   if (meta.totalPages <= 1) {
-    return <p className="text-[11px] text-slate-400 text-right">{meta.total} total</p>;
+    return <p className="text-xs text-slate-500 text-right px-1">{meta.total} total</p>;
   }
   return (
-    <div className="flex items-center justify-between text-xs text-slate-500">
+    <div className="flex items-center justify-between gap-3 px-1 text-xs text-slate-500">
       <span>
-        Page {meta.page} of {meta.totalPages} · {meta.total} total
+        Page <span className="font-semibold text-slate-700">{meta.page}</span> of {meta.totalPages} · {meta.total} total
       </span>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onPage(meta.page - 1)}
-          disabled={meta.page <= 1 || busy}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold disabled:opacity-40 hover:bg-slate-50"
-        >
+      <div className="flex gap-1.5">
+        <button type="button" onClick={() => onPage(meta.page - 1)} disabled={meta.page <= 1 || busy} className="btn btn-secondary btn-sm">
           <ChevronLeft className="w-3.5 h-3.5" /> Prev
         </button>
-        <button
-          type="button"
-          onClick={() => onPage(meta.page + 1)}
-          disabled={meta.page >= meta.totalPages || busy}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold disabled:opacity-40 hover:bg-slate-50"
-        >
+        <button type="button" onClick={() => onPage(meta.page + 1)} disabled={meta.page >= meta.totalPages || busy} className="btn btn-secondary btn-sm">
           Next <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>

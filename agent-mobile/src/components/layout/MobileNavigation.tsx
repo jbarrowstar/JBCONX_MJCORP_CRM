@@ -21,7 +21,7 @@ export const MobileNavigation: React.FC = () => {
             to={item.path}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
-                isActive ? 'text-[#274C77] font-semibold' : 'text-slate-400 hover:text-slate-600'
+                isActive ? 'text-brand-600 font-semibold' : 'text-slate-400 hover:text-slate-600'
               }`
             }
           >

@@ -9,7 +9,7 @@ export const ATTENDANCE_STATUS_STYLES: Record<AttendanceStatusValue, string> = {
   present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   half_day: 'bg-amber-50 text-amber-700 border-amber-200',
   absent: 'bg-rose-50 text-rose-700 border-rose-200',
-  on_leave: 'bg-blue-50 text-blue-700 border-blue-200',
+  on_leave: 'bg-brand-50 text-brand-700 border-brand-200',
 };
 
 export const VISIT_OUTCOMES = ['interested', 'not_interested', 'follow_up_required', 'converted', 'not_available', 'other'] as const;

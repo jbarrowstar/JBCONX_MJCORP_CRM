@@ -5,6 +5,8 @@ import { store } from './redux/store';
 import { AppRoutes } from './routes';
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt';
 import { AuthGate } from './features/auth/AuthGate';
+import { MOCK_API_ENABLED } from '@shared/mock/mockMode';
+import { MockModeBanner } from '@shared/mock/MockModeBanner';
 import './styles/globals.css';
 
 export const App: React.FC = () => {
@@ -14,6 +16,7 @@ export const App: React.FC = () => {
         <AuthGate>
           <AppRoutes />
         </AuthGate>
+        {import.meta.env.DEV && MOCK_API_ENABLED && <MockModeBanner />}
         <PWAInstallPrompt />
       </BrowserRouter>
     </Provider>

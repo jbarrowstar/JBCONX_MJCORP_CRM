@@ -32,21 +32,21 @@ export const LeadStatusModal: React.FC<{ lead: LeadDto; onClose: () => void }> =
     }
   };
 
-  const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const input = 'control w-full';
   return (
     <Modal title={`Change status — ${lead.leadCode}`} onClose={onClose} busy={isLoading} size="sm">
       <form onSubmit={submit} className="p-5 space-y-4">
         <InlineError message={error} />
         <p className="text-xs text-slate-500">Current status: <strong>{LEAD_STATUS_LABELS[lead.status]}</strong></p>
         <div>
-          <label htmlFor="ls-status" className="block text-xs font-semibold text-slate-700 mb-1">New status</label>
+          <label htmlFor="ls-status" className="label">New status</label>
           <select id="ls-status" value={status} onChange={(e) => setStatus(e.target.value as LeadStatusValue)} className={input}>
             {options.map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}
           </select>
         </div>
         {status === 'lost' && (
           <div>
-            <label htmlFor="ls-lost" className="block text-xs font-semibold text-slate-700 mb-1">Reason lost *</label>
+            <label htmlFor="ls-lost" className="label">Reason lost *</label>
             <textarea id="ls-lost" rows={2} value={lostReason} onChange={(e) => setLostReason(e.target.value)} className={input} />
           </div>
         )}
@@ -54,12 +54,12 @@ export const LeadStatusModal: React.FC<{ lead: LeadDto; onClose: () => void }> =
           <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Closing a lead cancels its pending follow-ups.</p>
         )}
         <div>
-          <label htmlFor="ls-remarks" className="block text-xs font-semibold text-slate-700 mb-1">Remarks</label>
+          <label htmlFor="ls-remarks" className="label">Remarks</label>
           <textarea id="ls-remarks" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className={input} />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm disabled:opacity-60">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={isLoading} className="btn btn-primary">
             {isLoading ? 'Saving…' : 'Update status'}
           </button>
         </div>

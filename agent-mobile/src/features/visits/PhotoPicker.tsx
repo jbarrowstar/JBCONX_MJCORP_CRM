@@ -27,7 +27,7 @@ export const PhotoPicker: React.FC<{ files: File[]; onChange: (f: File[]) => voi
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-slate-700">Photos ({files.length + existing}/{MAX_PHOTOS})</span>
-        <button type="button" onClick={() => input.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#274C77] bg-blue-50 rounded-lg">
+        <button type="button" onClick={() => input.current?.click()} className="btn btn-secondary btn-sm">
           <Camera className="w-3.5 h-3.5" /> Add photo
         </button>
       </div>

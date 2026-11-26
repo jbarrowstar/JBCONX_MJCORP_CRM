@@ -1,0 +1,239 @@
+/*
+ * JBCONX UI primitives — shared by the Admin web portal and the Field Agent portal.
+ * Imported from each app's globals.css. Pages compose these classes with ordinary Tailwind utilities.
+ */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-slate-800 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+
+  /* Thin, quiet scrollbars for scroll regions inside the app shell */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: rgb(203 213 225); border-radius: 9999px; }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  /* ── Page scaffolding ─────────────────────────────────────────── */
+  .page {
+    @apply w-full max-w-[1440px] mx-auto flex flex-col gap-6 animate-fade-in;
+  }
+  .page-header {
+    @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+  }
+  .page-eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.08em] text-brand-600;
+  }
+  .page-title {
+    @apply font-display text-[22px] leading-7 font-bold tracking-tight text-slate-900 sm:text-2xl;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-500;
+  }
+  .page-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  /* ── Surfaces ─────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white border border-slate-200/80 rounded-xl shadow-card min-w-0;
+  }
+  .card-pad {
+    @apply p-5;
+  }
+  .card-header {
+    @apply flex items-start justify-between gap-3 px-5 pt-5;
+  }
+  .card-title {
+    @apply text-sm font-semibold text-slate-900;
+  }
+  .card-subtitle {
+    @apply mt-0.5 text-xs text-slate-500;
+  }
+  .section-label {
+    @apply text-2xs font-semibold uppercase tracking-[0.08em] text-slate-500;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-[13px] font-medium whitespace-nowrap
+      transition-colors duration-150 select-none
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+  .btn-danger {
+    @apply bg-rose-600 text-white shadow-sm hover:bg-rose-700;
+  }
+  .btn-sm {
+    @apply h-8 px-2.5 text-xs;
+  }
+  .btn-lg {
+    @apply h-11 px-5 text-sm;
+  }
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 transition-colors
+      hover:bg-slate-100 hover:text-slate-900
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40
+      disabled:opacity-40;
+  }
+  .link {
+    @apply font-medium text-brand-600 hover:text-brand-700 hover:underline underline-offset-2;
+  }
+
+  /* Small inline row actions (Edit / Reset / Deactivate …) */
+  .row-action {
+    @apply inline-flex items-center gap-1 h-7 px-2 rounded-md text-xs font-medium transition-colors;
+  }
+
+  /* ── Form controls ────────────────────────────────────────────── */
+  .label {
+    @apply block text-xs font-medium text-slate-700 mb-1.5;
+  }
+  .control {
+    @apply h-9 px-3 text-[13px] bg-white border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400
+      transition-shadow duration-150
+      focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10
+      disabled:bg-slate-50 disabled:text-slate-400;
+  }
+  select.control {
+    @apply appearance-none pr-8 bg-no-repeat cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+  }
+  textarea.control {
+    @apply h-auto py-2;
+  }
+  .control-icon {
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400;
+  }
+  .checkbox {
+    @apply w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500/30 cursor-pointer accent-brand-600;
+  }
+
+  /* Filter bar that sits above a data table */
+  .toolbar {
+    @apply flex flex-col gap-3 p-3 sm:p-4 border-b border-slate-200/80;
+  }
+
+  /* ── Tables ───────────────────────────────────────────────────── */
+  .table-scroll {
+    @apply overflow-x-auto scroll-thin;
+  }
+  .data-table {
+    @apply w-full text-left border-collapse text-[13px];
+  }
+  .data-table thead th {
+    @apply sticky top-0 z-[1] bg-slate-50/95 backdrop-blur px-3 py-2.5 text-2xs font-semibold uppercase tracking-[0.06em] text-slate-500 border-b border-slate-200 whitespace-nowrap;
+  }
+  .data-table tbody td {
+    @apply px-3 py-3 text-slate-700 border-b border-slate-100 align-middle whitespace-nowrap;
+  }
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-brand-50/40;
+  }
+  .data-table th:first-child,
+  .data-table td:first-child {
+    @apply pl-5;
+  }
+  .data-table th:last-child,
+  .data-table td:last-child {
+    @apply pr-5;
+  }
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .cell-primary {
+    @apply font-medium text-slate-900;
+  }
+  .cell-meta {
+    @apply text-xs text-slate-500;
+  }
+  .cell-code {
+    @apply font-mono text-2xs text-slate-400;
+  }
+
+  /* ── Badges & status ──────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium whitespace-nowrap border;
+  }
+  .dot {
+    @apply inline-block w-1.5 h-1.5 rounded-full;
+  }
+
+  /* ── Tabs (underline style) ───────────────────────────────────── */
+  .tabs {
+    @apply flex gap-1 overflow-x-auto scroll-thin border-b border-slate-200;
+  }
+  .tab {
+    @apply relative px-3 py-2.5 text-[13px] font-medium text-slate-500 whitespace-nowrap transition-colors hover:text-slate-900
+      after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-transparent;
+  }
+  .tab[aria-selected='true'] {
+    @apply text-brand-700 after:bg-brand-600;
+  }
+  .tab-count {
+    @apply ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-slate-100 text-2xs font-semibold text-slate-600;
+  }
+  .tab[aria-selected='true'] .tab-count {
+    @apply bg-brand-100 text-brand-700;
+  }
+
+  /* Segmented control (pill group) */
+  .segmented {
+    @apply inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 border border-slate-200/70;
+  }
+  .segmented > button {
+    @apply h-8 px-3 rounded-md text-xs font-medium text-slate-600 transition-colors hover:text-slate-900;
+  }
+  .segmented > button[aria-selected='true'] {
+    @apply bg-white text-slate-900 shadow-sm;
+  }
+
+  /* ── KPI / metric tiles ───────────────────────────────────────── */
+  .metric-label {
+    @apply text-xs font-medium text-slate-500;
+  }
+  .metric-value {
+    @apply font-display text-[28px] leading-8 font-bold tracking-tight text-slate-900 tabular-nums;
+  }
+  .metric-hint {
+    @apply text-xs text-slate-500;
+  }
+
+  /* Progress bar */
+  .progress {
+    @apply w-full h-1.5 bg-slate-100 rounded-full overflow-hidden;
+  }
+  .progress > span {
+    @apply block h-full rounded-full bg-brand-600 transition-[width] duration-500;
+  }
+
+  /* Avatar initials */
+  .avatar {
+    @apply inline-flex items-center justify-center flex-shrink-0 rounded-full bg-brand-100 text-brand-700 font-semibold;
+  }
+}

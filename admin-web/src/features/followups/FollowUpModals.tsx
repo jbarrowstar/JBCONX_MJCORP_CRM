@@ -12,7 +12,7 @@ import {
 } from '../../redux/services/crmApi';
 import { pushToast } from '../../redux/slices/toastSlice';
 
-const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+const input = 'control w-full';
 const label = 'block text-xs font-semibold text-slate-700 mb-1';
 
 /** Create (pass `leadId`) or reschedule/edit (pass `followUp`) a follow-up. */
@@ -65,9 +65,9 @@ export const FollowUpFormModal: React.FC<{ leadId?: string; followUp?: FollowUpD
           <label htmlFor="fu-notes" className={label}>Notes</label>
           <textarea id="fu-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className={input} />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={busy} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm disabled:opacity-60">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={busy} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy ? 'Saving…' : followUp ? 'Save' : 'Schedule'}
           </button>
         </div>
@@ -101,8 +101,8 @@ export const CompleteFollowUpModal: React.FC<{ followUp: FollowUpDto; onClose: (
           <label htmlFor="cf-notes" className={label}>Outcome notes</label>
           <textarea id="cf-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className={input} placeholder="What was agreed or discussed?" />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Cancel</button>
           <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm disabled:opacity-60">
             {isLoading ? 'Saving…' : 'Mark completed'}
           </button>
@@ -136,8 +136,8 @@ export const CancelFollowUpModal: React.FC<{ followUp: FollowUpDto; onClose: () 
           <label htmlFor="cx-reason" className={label}>Reason (optional)</label>
           <textarea id="cx-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={input} />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Keep it</button>
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Keep it</button>
           <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm disabled:opacity-60">
             {isLoading ? 'Cancelling…' : 'Cancel follow-up'}
           </button>

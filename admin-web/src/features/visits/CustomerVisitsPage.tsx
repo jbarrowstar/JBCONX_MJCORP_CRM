@@ -44,80 +44,96 @@ export const CustomerVisitsPage: React.FC = () => {
     { skip: !rangeOk }
   );
 
-  const sel = 'text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const sel = 'control';
+
+  const OUTCOME_STYLE: Record<string, string> = {
+    interested: 'bg-violet-50 text-violet-700 border-violet-200',
+    not_interested: 'bg-slate-100 text-slate-600 border-slate-200',
+    follow_up_required: 'bg-amber-50 text-amber-800 border-amber-200',
+    converted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    not_available: 'bg-slate-50 text-slate-500 border-slate-200',
+    other: 'bg-slate-50 text-slate-600 border-slate-200',
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Customer Visits</h1>
-        <p className="text-sm text-slate-500">Visits recorded by field agents with GPS location, notes, outcome and photos.</p>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Customer Visits</h1>
+          <p className="page-subtitle">Visits recorded by field agents with GPS location, notes, outcome and photos.</p>
+        </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-end gap-3">
-        <div><label htmlFor="cv-from" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">From</label>
-          <input id="cv-from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={sel} /></div>
-        <div><label htmlFor="cv-to" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">To</label>
-          <input id="cv-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={sel} /></div>
-        {!isLeader && (
-          <select aria-label="Filter by team" value={teamId} onChange={(e) => { setTeamId(e.target.value); setAgentId(''); }} className={sel}>
-            <option value="">All teams</option>{teams?.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+      <section className="card">
+        <div className="toolbar sm:flex-row sm:flex-wrap sm:items-end">
+          <div><label htmlFor="cv-from" className="label">From</label>
+            <input id="cv-from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={sel} /></div>
+          <div><label htmlFor="cv-to" className="label">To</label>
+            <input id="cv-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={sel} /></div>
+          <div className="hidden sm:block w-px h-9 bg-slate-200 mx-1" />
+          {!isLeader && (
+            <select aria-label="Filter by team" value={teamId} onChange={(e) => { setTeamId(e.target.value); setAgentId(''); }} className={sel}>
+              <option value="">All teams</option>{teams?.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <select aria-label="Filter by agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={sel}>
+            <option value="">All agents</option>{agents?.items.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
-        )}
-        <select aria-label="Filter by agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={sel}>
-          <option value="">All agents</option>{agents?.items.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <select aria-label="Filter by outcome" value={outcome} onChange={(e) => setOutcome(e.target.value as '' | VisitOutcomeValue)} className={sel}>
-          <option value="">Any outcome</option>{VISIT_OUTCOMES.map((o) => <option key={o} value={o}>{VISIT_OUTCOME_LABELS[o]}</option>)}
-        </select>
-        <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as '' | VisitStatusValue)} className={sel}>
-          <option value="">Any status</option>{VISIT_STATUSES.map((o) => <option key={o} value={o}>{VISIT_STATUS_LABELS[o]}</option>)}
-        </select>
-      </div>
+          <select aria-label="Filter by outcome" value={outcome} onChange={(e) => setOutcome(e.target.value as '' | VisitOutcomeValue)} className={sel}>
+            <option value="">Any outcome</option>{VISIT_OUTCOMES.map((o) => <option key={o} value={o}>{VISIT_OUTCOME_LABELS[o]}</option>)}
+          </select>
+          <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as '' | VisitStatusValue)} className={sel}>
+            <option value="">Any status</option>{VISIT_STATUSES.map((o) => <option key={o} value={o}>{VISIT_STATUS_LABELS[o]}</option>)}
+          </select>
+        </div>
 
-      {!rangeOk ? (
-        <EmptyState title="Pick a valid date range" hint="The start date must be on or before the end date." />
-      ) : isLoading ? (
-        <Spinner label="Loading visits…" />
-      ) : isError ? (
-        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
-      ) : data!.items.length === 0 ? (
-        <EmptyState title="No customer visits in this range" hint="Visits appear when field agents record them from the mobile app." />
-      ) : (
-        <>
-          <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
-            <table className="w-full text-left border-collapse min-w-[920px]" data-testid="visit-table">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Visited</th><th className="py-3 px-4">Customer</th><th className="py-3 px-4">Agent</th>
-                  <th className="py-3 px-4">Outcome</th><th className="py-3 px-4">Location</th><th className="py-3 px-4">Notes</th><th className="py-3 px-4">Photos</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {data!.items.map((v) => (
-                  <tr key={v.id} data-testid="visit-row" className="hover:bg-slate-50 align-top">
-                    <td className="py-3 px-4 whitespace-nowrap">{formatDateTime(v.visitedAt)}</td>
-                    <td className="py-3 px-4">
-                      <button type="button" onClick={() => setOpen(v)} className="text-left">
-                        <div className="font-semibold text-slate-900 hover:underline">{v.lead?.customerName ?? '—'}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">{v.lead?.leadCode} · {v.lead?.city}</div>
-                      </button>
-                    </td>
-                    <td className="py-3 px-4">{v.agent?.name ?? '—'}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{VISIT_OUTCOME_LABELS[v.outcome]}</div>
-                      {v.status !== 'completed' && <div className="text-[11px] text-amber-700">{VISIT_STATUS_LABELS[v.status]}</div>}
-                    </td>
-                    <td className="py-3 px-4"><a href={mapsUrl(v.location.latitude, v.location.longitude)} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-[11px] text-[#274C77] hover:underline"><MapPin className="w-3 h-3" />{formatCoords(v.location.latitude, v.location.longitude)}</a></td>
-                    <td className="py-3 px-4 max-w-[240px]"><div className="truncate" title={v.notes}>{v.notes}</div></td>
-                    <td className="py-3 px-4">{v.photoCount > 0 ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600"><ImageIcon className="w-3.5 h-3.5" />{v.photoCount}</span> : <span className="text-slate-300">—</span>}</td>
+        {!rangeOk ? (
+          <div className="p-4"><EmptyState title="Pick a valid date range" hint="The start date must be on or before the end date." /></div>
+        ) : isLoading ? (
+          <Spinner label="Loading visits…" />
+        ) : isError ? (
+          <div className="p-4"><ErrorState message={errorMessage(error)} onRetry={() => void refetch()} /></div>
+        ) : data!.items.length === 0 ? (
+          <div className="p-4"><EmptyState icon={MapPin} title="No customer visits in this range" hint="Visits appear when field agents record them from the mobile app." /></div>
+        ) : (
+          <>
+            <div className={`table-scroll transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
+              <table className="data-table min-w-[960px]" data-testid="visit-table">
+                <thead>
+                  <tr>
+                    <th>Visited</th><th>Customer</th><th>Agent</th>
+                    <th>Outcome</th><th>Location</th><th>Notes</th><th>Photos</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination meta={data!.meta} onPage={setPage} busy={isFetching} />
-        </>
-      )}
+                </thead>
+                <tbody>
+                  {data!.items.map((v) => (
+                    <tr key={v.id} data-testid="visit-row" className="cursor-pointer" onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) setOpen(v); }}>
+                      <td className="tabular-nums text-slate-700">{formatDateTime(v.visitedAt)}</td>
+                      <td>
+                        <button type="button" onClick={() => setOpen(v)} className="group text-left">
+                          <div className="cell-primary group-hover:text-brand-700 group-hover:underline underline-offset-2">{v.lead?.customerName ?? '—'}</div>
+                          <div className="cell-code">{v.lead?.leadCode} · {v.lead?.city}</div>
+                        </button>
+                      </td>
+                      <td>{v.agent?.name ?? '—'}</td>
+                      <td>
+                        <span className={`badge ${OUTCOME_STYLE[v.outcome] ?? OUTCOME_STYLE.other}`}>{VISIT_OUTCOME_LABELS[v.outcome]}</span>
+                        {v.status !== 'completed' && <div className="text-xs text-amber-700 mt-1">{VISIT_STATUS_LABELS[v.status]}</div>}
+                      </td>
+                      <td><a href={mapsUrl(v.location.latitude, v.location.longitude)} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-xs link"><MapPin className="w-3.5 h-3.5" />{formatCoords(v.location.latitude, v.location.longitude)}</a></td>
+                      <td className="max-w-[260px]"><div className="truncate" title={v.notes}>{v.notes}</div></td>
+                      <td>{v.photoCount > 0 ? <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600"><ImageIcon className="w-4 h-4 text-slate-400" />{v.photoCount}</span> : <span className="text-slate-300">—</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-slate-100 px-4 py-3">
+              <Pagination meta={data!.meta} onPage={setPage} busy={isFetching} />
+            </div>
+          </>
+        )}
+      </section>
       {open && <VisitDrawer visit={open} onClose={() => setOpen(null)} />}
     </div>
   );

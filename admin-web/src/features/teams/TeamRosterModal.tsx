@@ -89,7 +89,7 @@ export const TeamRosterModal: React.FC<{ team: Team; canEdit: boolean; onClose: 
         )}
 
         {canEdit && !adding && (
-          <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#274C77] bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100">
+          <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-brand-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100">
             <UserPlus className="w-3.5 h-3.5" /> Add agents
           </button>
         )}
@@ -108,7 +108,7 @@ export const TeamRosterModal: React.FC<{ team: Team; canEdit: boolean; onClose: 
                 {available.map((a) => (
                   <li key={a.id}>
                     <label className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white cursor-pointer text-xs">
-                      <input type="checkbox" className="w-4 h-4 rounded border-slate-300" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} />
+                      <input type="checkbox" className="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} />
                       <span className="font-semibold text-slate-800">{a.name}</span>
                       <span className="text-slate-400 truncate">
                         {a.team ? `currently in ${a.team.name} — will move` : 'no team'}
@@ -124,7 +124,7 @@ export const TeamRosterModal: React.FC<{ team: Team; canEdit: boolean; onClose: 
                 type="button"
                 disabled={selected.length === 0 || busy}
                 onClick={() => void doAdd()}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg disabled:opacity-50"
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-50"
               >
                 Add {selected.length || ''} selected
               </button>

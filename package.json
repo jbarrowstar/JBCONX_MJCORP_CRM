@@ -11,6 +11,9 @@
     "dev:admin": "npm run dev --workspace=admin-web",
     "dev:mobile": "npm run dev --workspace=agent-mobile",
     "dev": "concurrently -n \"ADMIN,MOBILE\" -c \"blue,green\" \"npm run dev:admin\" \"npm run dev:mobile\"",
+    "dev:admin:mock": "npm run dev:mock --workspace=admin-web",
+    "dev:mobile:mock": "npm run dev:mock --workspace=agent-mobile",
+    "dev:mock": "concurrently -n \"ADMIN-MOCK,MOBILE-MOCK\" -c \"yellow,magenta\" \"npm run dev:admin:mock\" \"npm run dev:mobile:mock\"",
     "build": "npm run build --workspaces",
     "build:admin": "npm run build --workspace=admin-web",
     "build:mobile": "npm run build --workspace=agent-mobile",
@@ -23,4 +26,3 @@
     "concurrently": "^8.2.2"
   }
 }
-

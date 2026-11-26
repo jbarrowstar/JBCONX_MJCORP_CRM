@@ -47,7 +47,7 @@ export const PWAInstallPrompt: React.FC = () => {
       <div className="flex items-center gap-2">
         <button
           onClick={handleInstall}
-          className="px-3 py-1.5 bg-[#274C77] hover:bg-[#1B3B6F] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+          className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Install</span>

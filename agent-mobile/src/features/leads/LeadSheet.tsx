@@ -39,7 +39,7 @@ const StatusSheet: React.FC<{ lead: LeadDto; onClose: () => void }> = ({ lead, o
   return (
     <Sheet title="Update status" onClose={onClose} busy={isLoading}>
       <form onSubmit={submit} className="p-5 space-y-4">
-        {error && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{error}</div>}
+        {error && <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
         <div>
           <label htmlFor="m-st" className={labelClass}>New status</label>
           <select id="m-st" value={status} onChange={(e) => setStatus(e.target.value as LeadStatusValue)} className={fieldClass}>
@@ -52,12 +52,12 @@ const StatusSheet: React.FC<{ lead: LeadDto; onClose: () => void }> = ({ lead, o
             <textarea id="m-st-lost" rows={2} value={lostReason} onChange={(e) => setLostReason(e.target.value)} className={fieldClass} />
           </div>
         )}
-        {(status === 'converted' || status === 'lost') && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">Closing a lead cancels its pending follow-ups. Only your team leader can reopen it.</p>}
+        {(status === 'converted' || status === 'lost') && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Closing a lead cancels its pending follow-ups. Only your team leader can reopen it.</p>}
         <div>
           <label htmlFor="m-st-remarks" className={labelClass}>Remarks</label>
           <textarea id="m-st-remarks" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className={fieldClass} />
         </div>
-        <button type="submit" disabled={isLoading} className="w-full py-3.5 text-xs font-bold text-white bg-[#274C77] rounded-xl disabled:opacity-60">{isLoading ? 'Saving…' : 'Update status'}</button>
+        <button type="submit" disabled={isLoading} className="btn btn-primary btn-lg w-full">{isLoading ? 'Saving…' : 'Update status'}</button>
       </form>
     </Sheet>
   );
@@ -87,24 +87,24 @@ export const LeadSheet: React.FC<{ leadId: string; onClose: () => void }> = ({ l
       setNoteError(normalizeError(err).message);
     }
   };
-  const action = 'flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-50';
+  const action = 'btn btn-secondary flex-1';
 
   return (
     <Sheet title={l ? `${l.leadCode} · ${l.customerName}` : 'Lead'} onClose={onClose} tall>
       {lead.isLoading ? (
         <p className="p-8 text-center text-xs text-slate-500" role="status">Loading lead…</p>
       ) : lead.isError || !l ? (
-        <div className="p-5"><div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-3">{errorMessage(lead.error)}</div></div>
+        <div className="p-5"><div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-3">{errorMessage(lead.error)}</div></div>
       ) : (
         <div className="p-5 space-y-5">
           <div className="flex items-center gap-2"><LeadStatusBadge status={l.status} /><PriorityBadge priority={l.priority} /></div>
 
-          <div className="bg-slate-50 rounded-2xl p-4 space-y-2 text-xs text-slate-700">
-            <a href={`tel:${l.mobileNumber}`} className="flex items-center gap-2 text-[#274C77] font-bold text-sm"><Phone className="w-4 h-4" />{l.mobileNumber}</a>
+          <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-4 space-y-2 text-[13px] text-slate-700">
+            <a href={`tel:${l.mobileNumber}`} className="flex items-center gap-2 link text-sm"><Phone className="w-4 h-4" />{l.mobileNumber}</a>
             {l.email && <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400" />{l.email}</p>}
             <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400" />{[l.address, l.city, l.state].filter(Boolean).join(', ')}</p>
             <p><span className="text-slate-400">Interested in:</span> {l.interestedService} · <span className="text-slate-400">Source:</span> {l.leadSource}</p>
-            {l.nextFollowUpAt && <p className={l.isFollowUpOverdue ? 'text-red-600 font-semibold' : ''}>Next follow-up: {formatDateTime(l.nextFollowUpAt)}{l.isFollowUpOverdue ? ' (overdue)' : ''}</p>}
+            {l.nextFollowUpAt && <p className={l.isFollowUpOverdue ? 'text-rose-600 font-medium' : ''}>Next follow-up: {formatDateTime(l.nextFollowUpAt)}{l.isFollowUpOverdue ? ' (overdue)' : ''}</p>}
             {l.remarks && <p className="whitespace-pre-wrap text-slate-600">{l.remarks}</p>}
             {l.lostReason && <p className="text-rose-600">Lost: {l.lostReason}</p>}
           </div>
@@ -117,23 +117,23 @@ export const LeadSheet: React.FC<{ leadId: string; onClose: () => void }> = ({ l
           {closed && <p className="text-[11px] text-slate-500">This lead is closed. Only your team leader can reopen it.</p>}
 
           <section>
-            <h3 className="text-xs font-bold text-slate-800 mb-2">Follow-ups</h3>
+            <h3 className="text-[13px] font-semibold text-slate-900 mb-2">Follow-ups</h3>
             {followUps.isLoading ? <p className="text-xs text-slate-400">Loading…</p>
               : followUps.data!.items.length === 0 ? <p className="text-xs text-slate-400">None scheduled.</p>
               : <ul className="space-y-3" data-testid="lead-followups">{followUps.data!.items.map((f) => <FollowUpCard key={f.id} f={f} />)}</ul>}
           </section>
 
           <section>
-            <h3 className="text-xs font-bold text-slate-800 mb-2">Add a note</h3>
+            <h3 className="text-[13px] font-semibold text-slate-900 mb-2">Add a note</h3>
             <form onSubmit={submitNote} className="space-y-2">
               <textarea aria-label="Add a note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={fieldClass} />
               {noteError && <p className="text-[11px] text-rose-600">{noteError}</p>}
-              <button type="submit" disabled={noteState.isLoading || !note.trim()} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#274C77] rounded-xl disabled:opacity-50"><Send className="w-3 h-3" /> Save note</button>
+              <button type="submit" disabled={noteState.isLoading || !note.trim()} className="btn btn-primary btn-sm"><Send className="w-3 h-3" /> Save note</button>
             </form>
           </section>
 
           <section>
-            <h3 className="text-xs font-bold text-slate-800 mb-3">Timeline</h3>
+            <h3 className="text-[13px] font-semibold text-slate-900 mb-3">Timeline</h3>
             {activities.isLoading ? <p className="text-xs text-slate-400">Loading…</p> : <ActivityTimeline items={activities.data?.items ?? []} />}
           </section>
         </div>

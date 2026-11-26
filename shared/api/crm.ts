@@ -14,13 +14,13 @@ export const LEAD_STATUS_LABELS: Record<LeadStatusValue, string> = {
 };
 
 export const LEAD_STATUS_STYLES: Record<LeadStatusValue, string> = {
-  new: 'bg-slate-100 text-slate-700 border-slate-200',
-  assigned: 'bg-blue-50 text-blue-700 border-blue-200',
-  contacted: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  interested: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  meeting_scheduled: 'bg-amber-50 text-amber-700 border-amber-200',
-  converted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  lost: 'bg-rose-50 text-rose-700 border-rose-200',
+  new: 'bg-slate-50 text-slate-700 border-slate-200 [--dot:theme(colors.slate.400)]',
+  assigned: 'bg-brand-50 text-brand-700 border-brand-200 [--dot:theme(colors.brand.500)]',
+  contacted: 'bg-sky-50 text-sky-700 border-sky-200 [--dot:theme(colors.sky.500)]',
+  interested: 'bg-violet-50 text-violet-700 border-violet-200 [--dot:theme(colors.violet.500)]',
+  meeting_scheduled: 'bg-amber-50 text-amber-800 border-amber-200 [--dot:theme(colors.amber.500)]',
+  converted: 'bg-emerald-50 text-emerald-700 border-emerald-200 [--dot:theme(colors.emerald.500)]',
+  lost: 'bg-rose-50 text-rose-700 border-rose-200 [--dot:theme(colors.rose.500)]',
 };
 
 export const CLOSED_STATUSES: readonly LeadStatusValue[] = ['converted', 'lost'];
@@ -34,10 +34,10 @@ export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type PriorityValue = (typeof PRIORITIES)[number];
 export const PRIORITY_LABELS: Record<PriorityValue, string> = { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' };
 export const PRIORITY_STYLES: Record<PriorityValue, string> = {
-  low: 'bg-slate-50 text-slate-500 border-slate-200',
-  medium: 'bg-sky-50 text-sky-700 border-sky-200',
-  high: 'bg-orange-50 text-orange-700 border-orange-200',
-  urgent: 'bg-red-50 text-red-700 border-red-200',
+  low: 'text-slate-500',
+  medium: 'text-sky-700',
+  high: 'text-orange-700',
+  urgent: 'text-red-700',
 };
 
 export const FOLLOWUP_TYPES = ['call', 'meeting', 'customer_visit', 'demo', 'documentation', 'other'] as const;

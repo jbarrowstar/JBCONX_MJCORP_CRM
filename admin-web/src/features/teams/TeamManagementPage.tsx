@@ -54,38 +54,35 @@ export const TeamManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="page">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Team Management</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="page-title">Team Management</h1>
+          <p className="page-subtitle">
             {canWrite ? 'Create teams, appoint team leaders and manage rosters.' : 'Your team and its roster.'}
           </p>
         </div>
-        {canWrite && (
-          <button
-            type="button"
-            onClick={() => setFormFor('new')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#274C77] rounded-lg hover:bg-[#1B3B6F] shadow-sm transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> Create team
-          </button>
-        )}
-      </div>
-
-      {canWrite && (
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            aria-label="Search teams"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search teams…"
-            className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#274C77] text-slate-800"
-          />
+        <div className="page-actions">
+          {canWrite && (
+            <div className="relative w-full sm:w-64">
+              <Search className="control-icon" />
+              <input
+                type="search"
+                aria-label="Search teams"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search teams…"
+                className="control w-full pl-9"
+              />
+            </div>
+          )}
+          {canWrite && (
+            <button type="button" onClick={() => setFormFor('new')} className="btn btn-primary">
+              <Plus className="w-4 h-4" /> Create team
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {isLoading ? (
         <Spinner label="Loading teams…" />
@@ -93,82 +90,83 @@ export const TeamManagementPage: React.FC = () => {
         <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
       ) : !data || data.items.length === 0 ? (
         <EmptyState
+          icon={Network}
           title={debounced ? 'No teams match your search' : canWrite ? 'No teams yet' : 'You are not part of a team yet'}
           hint={canWrite && !debounced ? 'Create a team, then add a leader and agents.' : undefined}
         />
       ) : (
         <>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-5 transition-opacity ${isFetching ? 'opacity-60' : ''}`} data-testid="team-grid">
+          <div className={`grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 transition-opacity ${isFetching ? 'opacity-60' : ''}`} data-testid="team-grid">
             {data.items.map((team) => {
               const rate = team.leadCount > 0 ? Math.round((team.convertedCount / team.leadCount) * 100) : 0;
               return (
-                <div key={team.id} data-testid="team-card" className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
+                <article key={team.id} data-testid="team-card" className={`card flex flex-col transition-shadow hover:shadow-raised ${team.isActive ? '' : 'opacity-80'}`}>
+                  <div className="p-5 flex-1">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#274C77] flex items-center justify-center shadow-sm flex-shrink-0">
-                          <Network className="w-6 h-6" />
+                        <div className="w-11 h-11 rounded-lg bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-100 flex items-center justify-center flex-shrink-0">
+                          <Network className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-base font-bold text-slate-900 truncate">
+                          <h3 className="text-[15px] font-semibold text-slate-900 truncate">
                             {team.name}
-                            {!team.isActive && <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5 align-middle">Inactive</span>}
+                            {!team.isActive && <span className="ml-2 badge bg-slate-100 text-slate-500 border-slate-200 align-middle">Inactive</span>}
                           </h3>
-                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#274C77]" />
-                            <span>
-                              Team leader: <strong>{team.leader?.name ?? 'Not assigned'}</strong>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 min-w-0">
+                            <ShieldCheck className="w-3.5 h-3.5 text-brand-600 flex-shrink-0" />
+                            <span className="truncate">
+                              Team leader: <strong className="font-medium text-slate-700">{team.leader?.name ?? 'Not assigned'}</strong>
                             </span>
                           </div>
                         </div>
                       </div>
                       {canWrite && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button type="button" onClick={() => setFormFor(team)} className="p-1.5 text-slate-400 hover:text-[#274C77] rounded-lg hover:bg-blue-50" aria-label={`Edit ${team.name}`}>
+                        <div className="flex items-center flex-shrink-0 -mr-1.5 -mt-1">
+                          <button type="button" onClick={() => setFormFor(team)} className="icon-btn w-8 h-8 hover:!text-brand-700" aria-label={`Edit ${team.name}`}>
                             <Pencil className="w-4 h-4" />
                           </button>
-                          <button type="button" onClick={() => setDeleteFor(team)} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50" aria-label={`Delete ${team.name}`}>
+                          <button type="button" onClick={() => setDeleteFor(team)} className="icon-btn w-8 h-8 hover:!text-rose-600 hover:!bg-rose-50" aria-label={`Delete ${team.name}`}>
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       )}
                     </div>
 
-                    {team.description && <p className="text-xs text-slate-500 mt-3">{team.description}</p>}
+                    {team.description && <p className="text-[13px] text-slate-500 mt-3 line-clamp-2">{team.description}</p>}
 
-                    <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Agents</span>
-                        <p className="text-lg font-bold text-slate-900 mt-0.5">{team.agentCount}</p>
+                    <dl className="mt-5 grid grid-cols-3 rounded-lg border border-slate-200/80 divide-x divide-slate-200/80 text-center">
+                      <div className="py-3">
+                        <dt className="text-2xs font-medium text-slate-500">Agents</dt>
+                        <dd className="font-display text-lg font-bold text-slate-900 tabular-nums">{team.agentCount}</dd>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leads</span>
-                        <p className="text-lg font-bold text-slate-900 mt-0.5">{team.leadCount}</p>
+                      <div className="py-3">
+                        <dt className="text-2xs font-medium text-slate-500">Leads</dt>
+                        <dd className="font-display text-lg font-bold text-slate-900 tabular-nums">{team.leadCount}</dd>
                       </div>
-                      <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Converted</span>
-                        <p className="text-lg font-bold text-emerald-800 mt-0.5">{team.convertedCount}</p>
+                      <div className="py-3">
+                        <dt className="text-2xs font-medium text-emerald-700">Converted</dt>
+                        <dd className="font-display text-lg font-bold text-emerald-700 tabular-nums">{team.convertedCount}</dd>
                       </div>
-                    </div>
+                    </dl>
 
                     <div className="mt-4">
-                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
                         <span>Conversion rate</span>
-                        <span className="font-semibold text-slate-800">{rate}%</span>
+                        <span className="font-semibold text-slate-900 tabular-nums">{rate}%</span>
                       </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#274C77] rounded-full" style={{ width: `${Math.min(100, rate)}%` }} />
+                      <div className="progress">
+                        <span style={{ width: `${Math.min(100, rate)}%` }} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                  <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                     <span>Created {formatDate(team.createdAt)}</span>
-                    <button type="button" onClick={() => setRosterFor(team)} className="text-xs font-semibold text-[#274C77] hover:underline">
+                    <button type="button" onClick={() => setRosterFor(team)} className="link text-[13px]">
                       {canWrite ? 'Manage roster →' : 'View roster →'}
                     </button>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>

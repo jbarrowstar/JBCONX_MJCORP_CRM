@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Filter, Phone, Mail, Users, Pencil, KeyRound, Power, Target } from 'lucide-react';
+import { Search, Plus, Filter, Phone, Mail, Pencil, KeyRound, Power, X } from 'lucide-react';
 import { errorMessage } from '@shared/api/errors';
 import { canManageRole, creatableRoles, ROLE_LABELS } from '@shared/auth/roles';
 import type { User, UserRole } from '@shared/types';
@@ -17,10 +17,10 @@ import { StaffFormModal } from './StaffFormModal';
 const PAGE_SIZE = 12;
 
 const ROLE_STYLES: Record<UserRole, string> = {
-  super_admin: 'bg-purple-50 text-purple-700 border-purple-200',
-  marketing_manager: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  team_leader: 'bg-sky-50 text-sky-700 border-sky-200',
-  field_agent: 'bg-teal-50 text-teal-700 border-teal-200',
+  super_admin: 'bg-brand-900 text-white border-brand-900',
+  marketing_manager: 'bg-brand-50 text-brand-800 border-brand-200',
+  team_leader: 'bg-sky-50 text-sky-800 border-sky-200',
+  field_agent: 'bg-slate-50 text-slate-700 border-slate-200',
 };
 
 const useDebounced = <T,>(value: T, ms = 300): T => {
@@ -75,158 +75,179 @@ export const StaffManagementPage: React.FC = () => {
     }
   };
 
-  const input = 'text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const input = 'control';
+  const filtered = !!(debouncedSearch || role || teamId || status);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="page">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Management</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="page-title">Staff Management</h1>
+          <p className="page-subtitle">
             {canCreate
               ? 'Create and manage marketing managers, team leaders and field agents.'
               : 'People in your team. Only managers and administrators can change staff accounts.'}
           </p>
         </div>
         {canCreate && (
-          <button
-            type="button"
-            onClick={() => setFormFor('new')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#274C77] rounded-lg hover:bg-[#1B3B6F] shadow-sm transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add staff member
-          </button>
+          <div className="page-actions">
+            <button type="button" onClick={() => setFormFor('new')} className="btn btn-primary">
+              <Plus className="w-4 h-4" /> Add staff member
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-        <div className="relative w-full lg:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            aria-label="Search staff"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, code or phone…"
-            className={`${input} w-full pl-9`}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select aria-label="Filter by role" value={role} onChange={(e) => setRole(e.target.value as '' | UserRole)} className={input}>
-            <option value="">All roles</option>
-            {(Object.keys(ROLE_LABELS) as UserRole[])
-              .filter((r) => actor.role === 'super_admin' || r !== 'super_admin')
-              .map((r) => (
-                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-              ))}
-          </select>
-          {actor.role !== 'team_leader' && (
-            <select aria-label="Filter by team" value={teamId} onChange={(e) => setTeamId(e.target.value)} className={input}>
-              <option value="">All teams</option>
-              {teams?.items.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          )}
-          <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as '' | 'active' | 'inactive')} className={input}>
-            <option value="">Any status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <Spinner label="Loading staff…" />
-      ) : isError ? (
-        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
-      ) : !data || data.items.length === 0 ? (
-        <EmptyState
-          title="No staff found"
-          hint={debouncedSearch || role || teamId || status ? 'Try changing or clearing the filters.' : canCreate ? 'Add your first staff member to get started.' : undefined}
-        />
-      ) : (
-        <>
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity ${isFetching ? 'opacity-60' : ''}`} data-testid="staff-grid">
-            {data.items.map((u) => {
-              const manageable = canManageRole(actor.role, u.role);
-              return (
-                <div key={u.id} data-testid="staff-card" className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-slate-300 transition-all flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-[#A3CEF1] text-[#274C77] font-bold flex items-center justify-center text-sm shadow-inner flex-shrink-0">
-                          {u.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-slate-900 leading-tight truncate">{u.name}</h3>
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5">{u.employeeCode ?? '—'}</p>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${
-                          u.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-                        }`}
-                      >
-                        {u.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-
-                    <span className={`inline-block mt-3 px-2 py-0.5 rounded-md text-[10px] font-bold border ${ROLE_STYLES[u.role]}`}>{ROLE_LABELS[u.role]}</span>
-
-                    <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{u.team?.name ?? (u.role === 'marketing_manager' || u.role === 'super_admin' ? 'Organisation-wide' : 'No team yet')}</span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">{u.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{u.phone || '—'}</span>
-                      </div>
-                      {u.role === 'field_agent' && (
-                        <div className="flex items-center gap-2">
-                          <Target className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{u.targetLeadsMonthly != null ? `${u.targetLeadsMonthly} leads / month` : 'No target set'}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100">
-                    <p className="text-[11px] text-slate-400">
-                      {u.joiningDate ? `Joined ${formatDate(u.joiningDate)}` : `Added ${formatDate(u.createdAt)}`}
-                      {u.lastLoginAt ? ` · Last sign-in ${formatDate(u.lastLoginAt)}` : ' · Never signed in'}
-                    </p>
-                    {manageable && u.id !== actor.id && (
-                      <div className="mt-2 flex items-center gap-1">
-                        <button type="button" onClick={() => setFormFor(u)} className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-[#274C77] hover:bg-blue-50 rounded-md">
-                          <Pencil className="w-3 h-3" /> Edit
-                        </button>
-                        <button type="button" onClick={() => setResetFor(u)} className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 rounded-md">
-                          <KeyRound className="w-3 h-3" /> Reset password
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setToggleFor(u)}
-                          className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md ${u.isActive ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50'}`}
-                        >
-                          <Power className="w-3 h-3" /> {u.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+      <section className="card">
+        <div className="toolbar lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-sm">
+            <Search className="control-icon" />
+            <input
+              type="search"
+              aria-label="Search staff"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, code or phone…"
+              className={`${input} w-full pl-9`}
+            />
           </div>
-          <Pagination meta={data.meta} onPage={setPage} busy={isFetching} />
-        </>
-      )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select aria-label="Filter by role" value={role} onChange={(e) => setRole(e.target.value as '' | UserRole)} className={input}>
+              <option value="">All roles</option>
+              {(Object.keys(ROLE_LABELS) as UserRole[])
+                .filter((r) => actor.role === 'super_admin' || r !== 'super_admin')
+                .map((r) => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
+            </select>
+            {actor.role !== 'team_leader' && (
+              <select aria-label="Filter by team" value={teamId} onChange={(e) => setTeamId(e.target.value)} className={input}>
+                <option value="">All teams</option>
+                {teams?.items.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
+            <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as '' | 'active' | 'inactive')} className={input}>
+              <option value="">Any status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            {filtered && (
+              <button type="button" onClick={() => { setSearch(''); setRole(''); setTeamId(''); setStatus(''); }} className="btn btn-ghost btn-sm text-brand-700">
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <Spinner label="Loading staff…" />
+        ) : isError ? (
+          <div className="p-4"><ErrorState message={errorMessage(error)} onRetry={() => void refetch()} /></div>
+        ) : !data || data.items.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              title="No staff found"
+              hint={filtered ? 'Try changing or clearing the filters.' : canCreate ? 'Add your first staff member to get started.' : undefined}
+            />
+          </div>
+        ) : (
+          <>
+            <div className={`table-scroll transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
+              <table className="data-table min-w-[920px]" data-testid="staff-grid">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role &amp; target</th>
+                    <th>Team</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Activity</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.items.map((u) => {
+                    const manageable = canManageRole(actor.role, u.role);
+                    return (
+                      <tr key={u.id} data-testid="staff-card" className={u.isActive ? '' : 'bg-slate-50/60'}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <span className={`avatar w-9 h-9 text-xs ${u.isActive ? '' : 'grayscale opacity-60'}`}>
+                              {u.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="cell-primary leading-tight truncate max-w-[200px]">{u.name}</h3>
+                              <p className="cell-code mt-0.5">{u.employeeCode ?? '—'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${ROLE_STYLES[u.role]}`}>{ROLE_LABELS[u.role]}</span>
+                          {u.role === 'field_agent' && (
+                            <div className={`text-xs mt-1 ${u.targetLeadsMonthly != null ? 'text-slate-500' : 'text-slate-400'}`}>{u.targetLeadsMonthly != null ? `${u.targetLeadsMonthly} leads / month` : 'No target set'}</div>
+                          )}
+                        </td>
+                        <td className="text-slate-700">
+                          <span>{u.team?.name ?? (u.role === 'marketing_manager' || u.role === 'super_admin' ? 'Organisation-wide' : 'No team yet')}</span>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1.5 text-slate-700 min-w-0">
+                            <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate max-w-[220px]">{u.email}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 cell-meta mt-0.5">
+                            <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span>{u.phone || '—'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${u.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                            <span className={`dot ${u.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} aria-hidden />
+                            {u.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="cell-meta">
+                          <div>{u.joiningDate ? `Joined ${formatDate(u.joiningDate)}` : `Added ${formatDate(u.createdAt)}`}</div>
+                          <div className={u.lastLoginAt ? '' : 'text-amber-700'}>{u.lastLoginAt ? `Last sign-in ${formatDate(u.lastLoginAt)}` : 'Never signed in'}</div>
+                        </td>
+                        <td className="text-right">
+                          {manageable && u.id !== actor.id ? (
+                            <div className="inline-flex items-center gap-0.5">
+                              <button type="button" onClick={() => setFormFor(u)} aria-label="Edit" title={`Edit ${u.name}`} className="icon-btn w-8 h-8 hover:!text-brand-700 hover:!bg-brand-50">
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button type="button" onClick={() => setResetFor(u)} aria-label="Reset password" title="Reset password" className="icon-btn w-8 h-8">
+                                <KeyRound className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setToggleFor(u)}
+                                aria-label={u.isActive ? 'Deactivate' : 'Activate'}
+                                title={u.isActive ? 'Deactivate account' : 'Activate account'}
+                                className={`icon-btn w-8 h-8 ${u.isActive ? 'hover:!text-rose-600 hover:!bg-rose-50' : '!text-emerald-600 hover:!bg-emerald-50'}`}
+                              >
+                                <Power className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-slate-100 px-4 py-3">
+              <Pagination meta={data.meta} onPage={setPage} busy={isFetching} />
+            </div>
+          </>
+        )}
+      </section>
 
       {formFor && <StaffFormModal staff={formFor === 'new' ? undefined : formFor} onClose={() => setFormFor(null)} />}
       {resetFor && <ResetPasswordModal staff={resetFor} onClose={() => setResetFor(null)} />}

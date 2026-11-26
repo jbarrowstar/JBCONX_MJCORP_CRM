@@ -9,7 +9,7 @@ import { useCorrectAttendanceMutation, useMarkAttendanceMutation } from '../../r
 import { useListStaffQuery } from '../../redux/services/staffApi';
 import { pushToast } from '../../redux/slices/toastSlice';
 
-const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+const input = 'control w-full';
 const label = 'block text-xs font-semibold text-slate-700 mb-1';
 
 export const MarkAttendanceModal: React.FC<{ today: string; onClose: () => void }> = ({ today, onClose }) => {
@@ -64,9 +64,9 @@ export const MarkAttendanceModal: React.FC<{ today: string; onClose: () => void 
           <label htmlFor="ma-remarks" className={label}>Remarks</label>
           <textarea id="ma-remarks" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className={input} />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg disabled:opacity-60">{isLoading ? 'Saving…' : 'Save'}</button>
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-60">{isLoading ? 'Saving…' : 'Save'}</button>
         </div>
       </form>
     </Modal>
@@ -107,9 +107,9 @@ export const CorrectCheckOutModal: React.FC<{ record: AttendanceDto; onClose: ()
           <label htmlFor="cc-remarks" className={label}>Reason *</label>
           <textarea id="cc-remarks" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className={input} />
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg disabled:opacity-60">{isLoading ? 'Saving…' : 'Record check-out'}</button>
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-60">{isLoading ? 'Saving…' : 'Record check-out'}</button>
         </div>
       </form>
     </Modal>

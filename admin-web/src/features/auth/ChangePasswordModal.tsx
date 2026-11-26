@@ -51,31 +51,31 @@ export const ChangePasswordModal: React.FC<{ onClose: () => void }> = ({ onClose
     }
   };
 
-  const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const input = 'control w-full';
 
   return (
     <Modal title="Change password" onClose={onClose} busy={isLoading}>
       <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4" noValidate>
         <InlineError message={serverError} />
         <div>
-          <label htmlFor="cp-current" className="block text-xs font-semibold text-slate-700 mb-1">Current password</label>
+          <label htmlFor="cp-current" className="label">Current password</label>
           <input id="cp-current" type="password" autoComplete="current-password" className={input} {...register('currentPassword')} />
-          {errors.currentPassword && <p className="text-[11px] text-rose-600 mt-1">{errors.currentPassword.message}</p>}
+          {errors.currentPassword && <p className="text-xs text-rose-600 mt-1">{errors.currentPassword.message}</p>}
         </div>
         <div>
-          <label htmlFor="cp-new" className="block text-xs font-semibold text-slate-700 mb-1">New password</label>
+          <label htmlFor="cp-new" className="label">New password</label>
           <input id="cp-new" type="password" autoComplete="new-password" className={input} {...register('newPassword')} />
           <p className="text-[11px] text-slate-400 mt-1">At least 10 characters, with a letter and a digit.</p>
-          {errors.newPassword && <p className="text-[11px] text-rose-600 mt-1">{errors.newPassword.message}</p>}
+          {errors.newPassword && <p className="text-xs text-rose-600 mt-1">{errors.newPassword.message}</p>}
         </div>
         <div>
-          <label htmlFor="cp-confirm" className="block text-xs font-semibold text-slate-700 mb-1">Confirm new password</label>
+          <label htmlFor="cp-confirm" className="label">Confirm new password</label>
           <input id="cp-confirm" type="password" autoComplete="new-password" className={input} {...register('confirm')} />
-          {errors.confirm && <p className="text-[11px] text-rose-600 mt-1">{errors.confirm.message}</p>}
+          {errors.confirm && <p className="text-xs text-rose-600 mt-1">{errors.confirm.message}</p>}
         </div>
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={isLoading} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={isLoading} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm disabled:opacity-60">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isLoading} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={isLoading} className="btn btn-primary">
             {isLoading ? 'Saving…' : 'Change password'}
           </button>
         </div>

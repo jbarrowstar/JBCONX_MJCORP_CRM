@@ -1,81 +1,63 @@
 import React from 'react';
+import markUrl from '../assets/brand/jbconx-mark.png';
+import wordmarkUrl from '../assets/brand/jbconx-wordmark.png';
+import wordmarkWhiteUrl from '../assets/brand/jbconx-wordmark-white.png';
+import logoUrl from '../assets/brand/jbconx-logo.png';
+import logoWhiteUrl from '../assets/brand/jbconx-logo-white.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  /** `light` = for dark backgrounds (white wordmark); `dark` / `brand` = for light backgrounds */
   variant?: 'light' | 'dark' | 'brand';
+  /** false renders the drop emblem only */
   showText?: boolean;
+  /** small caption under the wordmark, e.g. "ENTERPRISE ADMIN" */
   tagline?: string;
+  /** `stacked` renders the complete official lock-up (emblem, wordmark and "Click. Connect. Construct") */
+  layout?: 'inline' | 'stacked';
   className?: string;
 }
 
+const MARK_HEIGHT = { sm: 'h-7', md: 'h-8', lg: 'h-10', xl: 'h-14' } as const;
+const WORD_HEIGHT = { sm: 'h-3', md: 'h-3.5', lg: 'h-[18px]', xl: 'h-6' } as const;
+const STACK_HEIGHT = { sm: 'h-16', md: 'h-20', lg: 'h-28', xl: 'h-36' } as const;
+
+/** Official JBCONX logo, rendered from the brand artwork in shared/assets/brand. */
 export const JBConXLogo: React.FC<LogoProps> = ({
   size = 'md',
   variant = 'brand',
   showText = true,
   tagline,
+  layout = 'inline',
   className = '',
 }) => {
-  const iconDimensions = {
-    sm: 'w-7 h-7 text-xs',
-    md: 'w-9 h-9 text-sm',
-    lg: 'w-12 h-12 text-base',
-    xl: 'w-16 h-16 text-xl',
-  };
+  const onDark = variant === 'light';
 
-  const textSizes = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-xl',
-    xl: 'text-2xl',
-  };
-
-  const textColor = variant === 'light' ? 'text-white' : 'text-slate-900';
-  const subtextColor = variant === 'light' ? 'text-[#A3CEF1]' : 'text-slate-500';
+  if (layout === 'stacked') {
+    return (
+      <img
+        src={onDark ? logoWhiteUrl : logoUrl}
+        alt="JBCONX — Click. Connect. Construct"
+        className={`${STACK_HEIGHT[size]} w-auto select-none ${className}`}
+        draggable={false}
+      />
+    );
+  }
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* Precision Brand Emblem */}
-      <div
-        className={`${iconDimensions[size]} relative rounded-xl flex items-center justify-center font-black tracking-tighter shadow-md flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#1B3B6F] via-[#274C77] to-[#6096BA] text-white border border-white/20`}
-      >
-        {/* Modern Geometrical Mesh Overlay */}
-        <div className="absolute inset-0 bg-white/10 [clip-path:polygon(0%_0%,100%_0%,65%_100%,0%_100%)] opacity-30 pointer-events-none" />
-        
-        {/* Connected nodes representation (CRM Connector) */}
-        <svg
-          viewBox="0 0 40 40"
-          className="w-full h-full p-1 drop-shadow"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle cx="11" cy="13" r="4.5" fill="#FFFFFF" />
-          <circle cx="29" cy="13" r="4.5" fill="#A3CEF1" />
-          <circle cx="20" cy="28" r="5.5" fill="#FFFFFF" />
-          
-          {/* Connection vectors */}
-          <line x1="11" y1="13" x2="20" y2="28" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="29" y1="13" x2="20" y2="28" stroke="#A3CEF1" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="11" y1="13" x2="29" y2="13" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeDasharray="2 2" />
-          
-          {/* Center connector core */}
-          <circle cx="20" cy="20" r="2.5" fill="#FBBF24" />
-        </svg>
-      </div>
-
-      {/* Brand Typography */}
+    <div className={`flex items-center gap-2.5 min-w-0 ${className}`}>
+      <img src={markUrl} alt={showText ? '' : 'JBCONX'} className={`${MARK_HEIGHT[size]} w-auto flex-shrink-0 select-none`} draggable={false} />
       {showText && (
-        <div className="flex flex-col justify-center leading-none">
-          <div className={`font-black tracking-tight ${textSizes[size]} ${textColor} flex items-center`}>
-            <span>JBCon</span>
-            <span className="text-[#6096BA] font-extrabold ml-0.5">X</span>
-          </div>
-          {tagline ? (
-            <span className={`text-[10px] font-bold tracking-wider uppercase mt-1 ${subtextColor}`}>
+        <div className="flex flex-col justify-center gap-1 min-w-0">
+          <img
+            src={onDark ? wordmarkWhiteUrl : wordmarkUrl}
+            alt="JBCONX"
+            className={`${WORD_HEIGHT[size]} w-auto self-start select-none`}
+            draggable={false}
+          />
+          {tagline && (
+            <span className={`text-[9px] font-semibold uppercase tracking-[0.14em] leading-none truncate ${onDark ? 'text-brand-200' : 'text-slate-500'}`}>
               {tagline}
-            </span>
-          ) : (
-            <span className={`text-[9px] font-bold tracking-widest uppercase mt-0.5 ${subtextColor}`}>
-              MARKETING CRM
             </span>
           )}
         </div>
@@ -83,4 +65,3 @@ export const JBConXLogo: React.FC<LogoProps> = ({
     </div>
   );
 };
-

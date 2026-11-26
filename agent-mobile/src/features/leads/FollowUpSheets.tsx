@@ -8,10 +8,10 @@ import { useAppDispatch } from '../../redux/hooks';
 import { useCancelFollowUpMutation, useCompleteFollowUpMutation, useCreateFollowUpMutation } from '../../redux/services/crmApi';
 import { pushToast } from '../../redux/slices/toastSlice';
 
-const Err: React.FC<{ m: string | null }> = ({ m }) => (m ? <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{m}</div> : null);
-const Footer: React.FC<{ busy: boolean; onClose: () => void; label: string; tone?: string; busyLabel: string }> = ({ busy, onClose, label, tone = 'bg-[#274C77]', busyLabel }) => (
+const Err: React.FC<{ m: string | null }> = ({ m }) => (m ? <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{m}</div> : null);
+const Footer: React.FC<{ busy: boolean; onClose: () => void; label: string; tone?: string; busyLabel: string }> = ({ busy, onClose, label, tone = 'bg-brand-600', busyLabel }) => (
   <div className="flex gap-2 pt-2">
-    <button type="button" onClick={onClose} disabled={busy} className="flex-1 py-3 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
+    <button type="button" onClick={onClose} disabled={busy} className="btn btn-secondary btn-lg flex-1">Cancel</button>
     <button type="submit" disabled={busy} className={`flex-1 py-3 text-xs font-bold text-white rounded-xl disabled:opacity-60 ${tone}`}>{busy ? busyLabel : label}</button>
   </div>
 );

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { CalendarRange } from 'lucide-react';
 import { LEAD_STATUS_LABELS, PRIORITY_LABELS, type LeadStatusValue, type PriorityValue } from '@shared/api/crm';
 import { errorMessage } from '@shared/api/errors';
 import { RANGE_PRESETS, customRange, hours, presetRange, type DateRangeInput } from '@shared/api/reports';
@@ -11,6 +12,7 @@ import {
 } from '../../redux/services/dashboardApi';
 import { useListTeamsQuery } from '../../redux/services/teamApi';
 import { CountList, DataTable, StatBlock, type Column } from './ReportParts';
+import { CHART, ChartLegend, ChartTooltip, axisProps } from '../../components/charts/chartTheme';
 
 type Tab = 'teams' | 'agents' | 'attendance' | 'visits' | 'onboarding' | 'funnel';
 const TABS: { id: Tab; label: string }[] = [
@@ -50,12 +52,12 @@ export const ReportsPage: React.FC = () => {
   const onboarding = useGetOnboardingProgressQuery(args, { skip: skip || tab !== 'onboarding' });
   const funnel = useGetLeadFunnelQuery(args, { skip: skip || tab !== 'funnel' });
 
-  const sel = 'text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const sel = 'control';
   const rangeLabel = range ? `${new Date(range.from).toLocaleDateString()} – ${new Date(range.to).toLocaleDateString()}` : 'Choose a valid date range';
   const file = (name: string) => `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
 
   const teamCols: Column<NonNullable<typeof teamPerf.data>['teams'][number]>[] = [
-    { key: 'name', label: 'Team', render: (r) => <span className="font-semibold text-slate-900">{r.name}</span>, csv: (r) => r.name },
+    { key: 'name', label: 'Team', render: (r) => <span className="cell-primary">{r.name}</span>, csv: (r) => r.name },
     { key: 'leader', label: 'Leader', render: (r) => r.leader?.name ?? '—', csv: (r) => r.leader?.name ?? '' },
     { key: 'agents', label: 'Agents', render: (r) => r.agents, align: 'right' },
     { key: 'total', label: 'Total leads', render: (r) => r.totalLeads, align: 'right' },
@@ -69,13 +71,16 @@ export const ReportsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+    <div className="page">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Reports & Analytics</h1>
-          <p className="text-sm text-slate-500">{isLeader ? 'Your team only.' : 'Whole organisation.'} <span data-testid="range-label">{rangeLabel}</span></p>
+          <h1 className="page-title">Reports &amp; Analytics</h1>
+          <p className="page-subtitle flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{isLeader ? 'Your team only.' : 'Whole organisation.'}</span>
+            <span className="inline-flex items-center gap-1.5 text-slate-600"><CalendarRange className="w-4 h-4 text-slate-400" /><span data-testid="range-label">{rangeLabel}</span></span>
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="page-actions">
           {!isLeader && (
             <select aria-label="Filter by team" value={teamId} onChange={(e) => setTeamId(e.target.value)} className={sel}>
               <option value="">All teams</option>
@@ -95,10 +100,9 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      <div role="tablist" className="flex flex-wrap gap-1 border-b border-slate-200">
+      <div role="tablist" className="tabs">
         {TABS.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px ${tab === t.id ? 'border-[#274C77] text-[#274C77]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className="tab">
             {t.label}
           </button>
         ))}
@@ -110,24 +114,26 @@ export const ReportsPage: React.FC = () => {
         <Body q={teamPerf}>
           {teamPerf.data && (teamPerf.data.teams.length === 0 ? <EmptyState title="No teams to report on" /> : (
             <div className="space-y-4">
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-900 mb-3">New vs converted in the selected range</h2>
-                <div className="h-60">
+              <div className="card p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                  <h2 className="card-title">New vs converted in the selected range</h2>
+                  <ChartLegend items={[{ label: 'New leads', color: CHART.primary }, { label: 'Converted', color: CHART.secondary }]} />
+                </div>
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={teamPerf.data.teams}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="leadsCreatedInRange" name="New leads" fill="#A3CEF1" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="convertedInRange" name="Converted" fill="#274C77" radius={[4, 4, 0, 0]} />
+                    <BarChart data={teamPerf.data.teams} margin={{ top: 4, right: 8, left: -8, bottom: 0 }} barGap={2} barCategoryGap="30%">
+                      <CartesianGrid vertical={false} stroke={CHART.grid} />
+                      <XAxis dataKey="name" {...axisProps} dy={6} />
+                      <YAxis allowDecimals={false} {...axisProps} width={44} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: '#F1F5F9' }} />
+                      <Bar dataKey="leadsCreatedInRange" name="New leads" fill={CHART.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                      <Bar dataKey="convertedInRange" name="Converted" fill={CHART.secondary} radius={[4, 4, 0, 0]} maxBarSize={36} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
               <DataTable rows={teamPerf.data.teams} columns={teamCols} rowKey={(r) => r.teamId} testId="team-report" exportName={file('team-performance')} />
-              <p className="text-[11px] text-slate-400">Conversion = converted ÷ all leads of the team (all time). "In range" columns use the selected dates.</p>
+              <p className="text-xs text-slate-500">Conversion = converted ÷ all leads of the team (all time). "In range" columns use the selected dates.</p>
             </div>
           ))}
         </Body>
@@ -140,7 +146,7 @@ export const ReportsPage: React.FC = () => {
               testId="agent-report"
               exportName={file('agent-performance')}
               columns={[
-                { key: 'name', label: 'Agent', render: (r) => <div><span className="font-semibold text-slate-900">{r.name}</span>{!r.isActive && <span className="ml-1.5 text-[10px] text-slate-400">(inactive)</span>}<div className="text-[11px] text-slate-400 font-mono">{r.employeeCode ?? ''}</div></div>, csv: (r) => r.name },
+                { key: 'name', label: 'Agent', render: (r) => <div><span className="cell-primary">{r.name}</span>{!r.isActive && <span className="ml-1.5 text-2xs text-slate-400">(inactive)</span>}<div className="cell-code">{r.employeeCode ?? ''}</div></div>, csv: (r) => r.name },
                 { key: 'team', label: 'Team', render: (r) => r.team?.name ?? '—', csv: (r) => r.team?.name ?? '' },
                 { key: 'target', label: 'Monthly target', render: (r) => r.monthlyTarget ?? '—', csv: (r) => r.monthlyTarget ?? '', align: 'right' },
                 { key: 'total', label: 'Leads', render: (r) => r.totalLeads, align: 'right' },
@@ -164,7 +170,7 @@ export const ReportsPage: React.FC = () => {
               testId="attendance-report"
               exportName={file('attendance-summary')}
               columns={[
-                { key: 'name', label: 'Agent', render: (r) => <span className="font-semibold text-slate-900">{r.name}</span>, csv: (r) => r.name },
+                { key: 'name', label: 'Agent', render: (r) => <span className="cell-primary">{r.name}</span>, csv: (r) => r.name },
                 { key: 'present', label: 'Present', render: (r) => r.present, align: 'right' },
                 { key: 'half', label: 'Half day', render: (r) => r.halfDay, align: 'right' },
                 { key: 'absent', label: 'Absent', render: (r) => r.absent, align: 'right' },
@@ -185,16 +191,16 @@ export const ReportsPage: React.FC = () => {
               {visits.data.total === 0 ? <EmptyState title="No customer visits in this range" /> : (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <h2 className="text-sm font-bold text-slate-900 mb-3">Visits per day</h2>
-                      <div className="h-56">
+                    <div className="lg:col-span-2 card p-5">
+                      <h2 className="card-title mb-4">Visits per day</h2>
+                      <div className="h-60">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={visits.data.byDay}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                            <Tooltip />
-                            <Bar dataKey="visits" name="Visits" fill="#274C77" radius={[4, 4, 0, 0]} />
+                          <BarChart data={visits.data.byDay} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+                            <CartesianGrid vertical={false} stroke={CHART.grid} />
+                            <XAxis dataKey="date" {...axisProps} tick={{ ...axisProps.tick, fontSize: 10 }} dy={6} />
+                            <YAxis allowDecimals={false} {...axisProps} width={44} />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: '#F1F5F9' }} />
+                            <Bar dataKey="visits" name="Visits" fill={CHART.primary} radius={[4, 4, 0, 0]} maxBarSize={28} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -202,7 +208,7 @@ export const ReportsPage: React.FC = () => {
                     <CountList title="By outcome" counts={visits.data.byOutcome} testId="visit-outcomes" />
                   </div>
                   <DataTable rows={visits.data.byAgent} rowKey={(r) => r.agentId} testId="visit-agents" exportName={file('visits-by-agent')}
-                    columns={[{ key: 'name', label: 'Agent', render: (r) => <span className="font-semibold text-slate-900">{r.name}</span>, csv: (r) => r.name }, { key: 'visits', label: 'Visits', render: (r) => r.visits, align: 'right' }]} />
+                    columns={[{ key: 'name', label: 'Agent', render: (r) => <span className="cell-primary">{r.name}</span>, csv: (r) => r.name }, { key: 'visits', label: 'Visits', render: (r) => r.visits, align: 'right' }]} />
                 </>
               )}
             </div>
@@ -217,7 +223,7 @@ export const ReportsPage: React.FC = () => {
                 <CountList title="Documents / KYC" counts={onboarding.data.documents} testId="onb-documents" />
                 <CountList title="Onboarding" counts={onboarding.data.onboarding} testId="onb-onboarding" />
               </div>
-              <p className="text-[11px] text-slate-400">Internal CRM statuses for all leads in scope; not verified by any external platform. Not limited by the date range.</p>
+              <p className="text-xs text-slate-500">Internal CRM statuses for all leads in scope; not verified by any external platform. Not limited by the date range.</p>
             </div>
           )}
         </Body>
@@ -225,7 +231,7 @@ export const ReportsPage: React.FC = () => {
         <Body q={funnel}>
           {funnel.data && (
             <div className="space-y-4">
-              <p className="text-[11px] text-slate-400">Leads created in the selected range.</p>
+              <p className="text-xs text-slate-500">Leads created in the selected range.</p>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <CountList title="By status" counts={funnel.data.byStatus} testId="funnel-status" format={(k) => LEAD_STATUS_LABELS[k as LeadStatusValue] ?? k} />
                 <CountList title="By priority" counts={funnel.data.byPriority} testId="funnel-priority" format={(k) => PRIORITY_LABELS[k as PriorityValue] ?? k} />
@@ -233,7 +239,7 @@ export const ReportsPage: React.FC = () => {
               {funnel.data.bySource.length === 0 ? <EmptyState title="No leads created in this range" /> : (
                 <DataTable rows={funnel.data.bySource} rowKey={(r) => r.source} testId="funnel-sources" exportName={file('lead-sources')}
                   columns={[
-                    { key: 'source', label: 'Source', render: (r) => <span className="font-semibold text-slate-900">{r.source}</span>, csv: (r) => r.source },
+                    { key: 'source', label: 'Source', render: (r) => <span className="cell-primary">{r.source}</span>, csv: (r) => r.source },
                     { key: 'total', label: 'Leads', render: (r) => r.total, align: 'right' },
                     { key: 'converted', label: 'Converted', render: (r) => r.converted, align: 'right' },
                     { key: 'rate', label: 'Conversion', render: (r) => `${r.conversionRate}%`, csv: (r) => r.conversionRate, align: 'right' },

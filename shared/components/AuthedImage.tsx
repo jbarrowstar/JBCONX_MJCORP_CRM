@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { MOCK_API_ENABLED } from '../mock/mockMode';
 
 /**
  * Private documents/photos are only served to signed-in users, so an <img src> cannot fetch them directly.
@@ -15,6 +16,14 @@ export const AuthedImage: React.FC<{ url: string; token: string | null; alt: str
     setFailed(false);
     (async () => {
       try {
+        // DEVELOPMENT-ONLY: photos uploaded in mock mode live in memory, not on a server.
+        if (import.meta.env.DEV && MOCK_API_ENABLED && url.includes('/__mock__/')) {
+          const { getMockPhotoUrl } = await import('../mock/mockBackend');
+          const mockUrl = getMockPhotoUrl(url.slice(url.indexOf('/__mock__/')));
+          if (!mockUrl) throw new Error('mock photo not available');
+          if (!cancelled) setSrc(mockUrl);
+          return;
+        }
         const res = await fetch(url, { headers: token ? { authorization: `Bearer ${token}` } : {} });
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();

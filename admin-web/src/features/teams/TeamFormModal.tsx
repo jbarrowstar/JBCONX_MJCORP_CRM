@@ -80,7 +80,7 @@ export const TeamFormModal: React.FC<{ team?: Team; onClose: () => void }> = ({ 
     }
   };
 
-  const input = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const input = 'control w-full';
   const label = 'block text-xs font-semibold text-slate-700 mb-1';
 
   return (
@@ -90,7 +90,7 @@ export const TeamFormModal: React.FC<{ team?: Team; onClose: () => void }> = ({ 
         <div>
           <label htmlFor="tf-name" className={label}>Team name *</label>
           <input id="tf-name" className={input} placeholder="e.g. Bengaluru North" {...register('name')} />
-          {errors.name && <p className="text-[11px] text-rose-600 mt-1">{errors.name.message}</p>}
+          {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name.message}</p>}
         </div>
         <div>
           <label htmlFor="tf-desc" className={label}>Description</label>
@@ -111,16 +111,16 @@ export const TeamFormModal: React.FC<{ team?: Team; onClose: () => void }> = ({ 
             )}
           />
           <p className="text-[11px] text-slate-400 mt-1">Only team leaders who do not lead another team are listed. Create leaders under Staff Management first.</p>
-          {errors.leaderId && <p className="text-[11px] text-rose-600 mt-1">{errors.leaderId.message}</p>}
+          {errors.leaderId && <p className="text-xs text-rose-600 mt-1">{errors.leaderId.message}</p>}
         </div>
         {editing && (
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-            <input type="checkbox" className="w-4 h-4 rounded border-slate-300" {...register('isActive')} /> Team is active
+            <input type="checkbox" className="checkbox" {...register('isActive')} /> Team is active
           </label>
         )}
-        <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={busy} className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm disabled:opacity-60">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={busy} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy ? 'Saving…' : editing ? 'Save changes' : 'Create team'}
           </button>
         </div>
