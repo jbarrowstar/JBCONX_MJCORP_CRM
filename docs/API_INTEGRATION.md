@@ -1,3 +1,5 @@
+> **Superseded (17 Nov 2026):** this document predates the real backend. Roles are lowercase (`super_admin`, `marketing_manager`, `team_leader`, `field_agent`), IDs are `id`, paging is in `meta`, and `/agents` became `/users`. The source of truth is the backend repo's `docs/API_CONTRACT.md`. Kept for history only.
+
 # JBConX Marketing CRM - API Integration Specification
 
 This document details the HTTP and WebSocket API contracts required by the frontend from the independently developed backend.

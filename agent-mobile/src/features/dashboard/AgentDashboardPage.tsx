@@ -1,233 +1,111 @@
-import React from 'react';
-import { 
-  Users, 
-  MapPin, 
-  Calendar, 
-  Award, 
-  PlusCircle, 
-  Clock, 
-  ArrowRight,
-  ShieldCheck,
-  TrendingUp,
-  PhoneCall
-} from 'lucide-react';
-import { useAppSelector } from '../../redux/hooks';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CRM_THEMES } from '@shared/constants/themes';
+import { AlertTriangle, CalendarClock, Target, TrendingUp, UserCheck, RefreshCw } from 'lucide-react';
+import { errorMessage } from '@shared/api/errors';
+import { presetRange } from '@shared/api/reports';
+import { useAppSelector } from '../../redux/hooks';
+import { useGetAgentPerformanceQuery, useGetDashboardQuery } from '../../redux/services/dashboardApi';
+
+const Tile: React.FC<{ id: string; label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ id, label, value, hint, tone = 'text-slate-900' }) => (
+  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+    <p data-testid={`tile-${id}`} className={`text-2xl font-black mt-1 ${tone}`}>{value}</p>
+    {hint && <p className="text-[11px] text-slate-400 mt-0.5">{hint}</p>}
+  </div>
+);
 
 export const AgentDashboardPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
-  const currentTheme = useAppSelector((state) => state.ui.theme) || 'classic-blue';
-  const themeConfig = CRM_THEMES[currentTheme] || CRM_THEMES['classic-blue'];
+  const dash = useGetDashboardQuery(undefined, { refetchOnMountOrArgChange: true });
+  const range = useMemo(() => presetRange(30), []);
+  const perf = useGetAgentPerformanceQuery(range, { refetchOnMountOrArgChange: true });
+
+  const d = dash.data;
+  const me = perf.data?.agents[0];
+  const attendance = d
+    ? d.attendanceToday.present > 0 ? 'Checked in today'
+      : d.attendanceToday.halfDay > 0 ? 'Shift recorded today (under a full day)'
+      : d.attendanceToday.onLeave > 0 ? 'On leave today'
+      : d.attendanceToday.absent > 0 ? 'Marked absent today'
+      : 'Not checked in yet'
+    : '';
 
   return (
-    <div className="space-y-6">
-      {/* Dynamic Theme Banner Card */}
-      <div 
-        className={`text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden bg-gradient-to-br ${themeConfig.headerGrad}`}
-      >
-        <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-white/10 rounded-full pointer-events-none" />
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-white/90" />
-              <span className="text-xs uppercase tracking-wider text-white/90 font-black">Field Agent Representative</span>
-              <span className="text-[10px] bg-white/20 px-2.5 py-0.5 rounded-full border border-white/20 font-bold">
-                {user?.teamName || 'Northern Squad'}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight text-white">Welcome, {user?.name || 'Agent'}</h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-lg font-medium">
-              Daily quota target tracking, fast customer capture, and scheduled meetings.
-            </p>
-          </div>
-
-          <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex flex-col gap-2 min-w-[210px]">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-white/80 font-medium">Today's Shift:</span>
-              <span className="font-bold text-emerald-300 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Active Punch
-              </span>
-            </div>
-            <div className="text-xs text-white/90">
-              Checked In: <strong className="text-white">08:45 AM</strong>
-            </div>
-            <Link
-              to="/attendance"
-              className="mt-1 w-full text-center bg-white text-slate-900 hover:bg-slate-100 font-black text-xs py-2 px-3 rounded-xl transition-all shadow-md"
-            >
-              Punch Shift Attendance
-            </Link>
-          </div>
+    <div className="space-y-4 pb-6">
+      <div className="bg-gradient-to-br from-[#1B3B6F] via-[#274C77] to-[#6096BA] rounded-3xl p-5 text-white shadow-lg">
+        <p className="text-[11px] font-semibold text-[#A3CEF1]">{user?.team?.name ?? 'No team yet'}</p>
+        <h1 className="text-2xl font-black mt-1 tracking-tight">Welcome, {user?.name ?? 'Agent'}</h1>
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-xs text-white/80 flex items-center gap-1.5"><UserCheck className="w-4 h-4" /><span data-testid="attendance-state">{attendance || '…'}</span></p>
+          <button type="button" aria-label="Refresh dashboard" onClick={() => { void dash.refetch(); void perf.refetch(); }} className="p-1.5 rounded-full bg-white/15">
+            <RefreshCw className={`w-4 h-4 ${dash.isFetching ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">My Leads</span>
-            <div 
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-              style={{ backgroundColor: themeConfig.secondary }}
-            >
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900">28</div>
-            <div className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" /> +4 this week
-            </div>
-          </div>
+      {dash.isLoading ? (
+        <p role="status" className="py-10 text-center text-xs text-slate-500">Loading your dashboard…</p>
+      ) : dash.isError || !d ? (
+        <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-3">
+          {errorMessage(dash.error)} <button type="button" className="underline font-bold" onClick={() => void dash.refetch()}>Retry</button>
         </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Visits</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900">5</div>
-            <div className="text-[11px] text-slate-500 font-medium mt-1">3 completed / 2 scheduled</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Conversions</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-              <Award className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900">9</div>
-            <div className="text-[11px] text-emerald-600 font-bold mt-1">84% of monthly target</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Tasks</span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900">3</div>
-            <div className="text-[11px] text-rose-600 font-bold mt-1">1 high priority follow-up</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Fast Actions */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-        <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">Fast Field Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Link
-            to="/leads"
-            className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 font-bold text-xs transition-colors shadow-sm text-slate-800"
-          >
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm flex-shrink-0"
-              style={{ backgroundColor: themeConfig.secondary }}
-            >
-              <PlusCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-sm font-bold">Add New Prospect</div>
-              <div className="text-[11px] font-normal text-slate-500">Capture walk-in client</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/visits"
-            className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 font-bold text-xs transition-colors shadow-sm text-emerald-950"
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm flex-shrink-0">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-sm font-bold">Log Customer Visit</div>
-              <div className="text-[11px] font-normal text-emerald-700">Record GPS & notes</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/attendance"
-            className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 font-bold text-xs transition-colors shadow-sm text-slate-800"
-          >
-            <div className="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center shadow-sm flex-shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-sm font-bold">Shift Attendance</div>
-              <div className="text-[11px] font-normal text-slate-500">Geofenced punch</div>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Appointment Schedule */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Today's Appointment Schedule</h2>
-            <p className="text-xs text-slate-500">Assigned customer visits & calls</p>
-          </div>
-          <Link 
-            to="/visits" 
-            className="text-xs font-bold flex items-center gap-1 hover:underline"
-            style={{ color: themeConfig.secondary }}
-          >
-            View All <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between">
-            <div className="space-y-1">
-              <span 
-                className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: themeConfig.secondary }}
-              >
-                14:00 PM • Commercial Demo
-              </span>
-              <div className="text-sm font-bold text-slate-900 mt-1">Apex Solutions Ltd</div>
-              <div className="text-xs text-slate-500 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" /> 150 N Michigan Ave, Chicago
+      ) : (
+        <>
+          {d.followUps.overdue > 0 && (
+            <Link to="/leads" className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-red-800" data-testid="overdue-banner">{d.followUps.overdue} overdue follow-up{d.followUps.overdue === 1 ? '' : 's'}</p>
+                <p className="text-[11px] text-red-700">Tap to open My leads → Follow-ups</p>
               </div>
-            </div>
-            <Link
-              to="/visits"
-              className="px-3 py-1.5 text-white font-bold text-xs rounded-xl shadow-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: themeConfig.secondary }}
-            >
-              Start Visit
             </Link>
+          )}
+
+          {d.personal && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4" data-testid="target-card">
+              <div className="flex items-center gap-2 mb-2"><Target className="w-4 h-4 text-[#274C77]" /><h2 className="text-xs font-bold text-slate-800">Monthly target</h2></div>
+              {d.personal.monthlyTarget ? (
+                <>
+                  <p className="text-sm text-slate-700"><span className="font-black text-lg text-slate-900" data-testid="target-converted">{d.personal.convertedThisMonth}</span> of {d.personal.monthlyTarget} leads converted this month</p>
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mt-2" role="progressbar" aria-valuenow={d.personal.targetProgress ?? 0} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, d.personal.targetProgress ?? 0)}%` }} />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1" data-testid="target-progress">{d.personal.targetProgress}% of target</p>
+                </>
+              ) : (
+                <p className="text-xs text-slate-500">No monthly target has been set for you. {d.personal.convertedThisMonth} lead(s) converted this month.</p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Tile id="open" label="Open leads" value={d.leads.pending} hint={`${d.leads.total} total`} />
+            <Tile id="converted" label="Converted" value={d.leads.converted} hint={`${d.leads.conversionRate}% conversion`} tone="text-emerald-600" />
+            <Tile id="overdue" label="Overdue follow-ups" value={d.followUps.overdue} tone={d.followUps.overdue ? 'text-red-600' : 'text-slate-900'} />
+            <Tile id="due-today" label="Due today" value={d.followUps.dueToday} hint={`${d.followUps.pending} pending`} />
+            <Tile id="visits-today" label="Visits today" value={d.visits.today} />
+            <Tile id="lost" label="Lost" value={d.leads.lost} />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-                16:30 PM • Contract Closing
-              </span>
-              <div className="text-sm font-bold text-slate-900 mt-1">Green Horizon Foods</div>
-              <div className="text-xs text-slate-500 flex items-center gap-1">
-                <PhoneCall className="w-3.5 h-3.5 text-slate-400" /> Phone Call & Final Handoff
-              </div>
-            </div>
-            <a
-              href="tel:+15550192"
-              className="px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-emerald-700"
-            >
-              Call Client
-            </a>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3"><TrendingUp className="w-4 h-4 text-[#274C77]" /><h2 className="text-xs font-bold text-slate-800">My last 30 days</h2></div>
+            {perf.isLoading ? <p className="text-xs text-slate-400">Loading…</p> : !me ? <p className="text-xs text-slate-400">No activity data.</p> : (
+              <dl className="grid grid-cols-2 gap-y-2 text-xs" data-testid="activity-30d">
+                {[
+                  ['Converted', me.convertedInRange, 'won'], ['Customer visits', me.visitsInRange, 'visits'],
+                  ['Follow-ups done', me.followUpsCompletedInRange, 'followups'], ['Days attended', me.attendanceDaysInRange, 'days'],
+                ].map(([k, v, id]) => (
+                  <div key={id as string}><dt className="text-slate-500">{k}</dt><dd className="font-black text-slate-900 text-base" data-testid={`act-${id}`}>{v}</dd></div>
+                ))}
+              </dl>
+            )}
           </div>
-        </div>
-      </div>
+
+          <Link to="/leads" className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#274C77] text-white text-xs font-bold shadow">
+            <CalendarClock className="w-4 h-4" /> Open my leads & follow-ups
+          </Link>
+        </>
+      )}
     </div>
   );
 };

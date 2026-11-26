@@ -4,13 +4,16 @@ import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { AppRoutes } from './routes';
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt';
+import { AuthGate } from './features/auth/AuthGate';
 import './styles/globals.css';
 
 export const App: React.FC = () => {
   return (
     <Provider store={store}>
       <BrowserRouter>
-        <AppRoutes />
+        <AuthGate>
+          <AppRoutes />
+        </AuthGate>
         <PWAInstallPrompt />
       </BrowserRouter>
     </Provider>

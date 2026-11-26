@@ -10,26 +10,17 @@ import { AgentProfilePage } from '../features/profile/AgentProfilePage';
 import { useAppSelector } from '../redux/hooks';
 
 export const AppRoutes: React.FC = () => {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { user, status } = useAppSelector((state) => state.auth);
 
-  // Guard: User must be authenticated and have AGENT role
-  const isAuthorizedAgent = isAuthenticated && user?.role === 'AGENT';
+  // Guard: signed in and holding the field_agent role (the server enforces this too).
+  const isAuthorizedAgent = status === 'authenticated' && user?.role === 'field_agent';
 
   return (
     <Routes>
-      <Route path="/login" element={<AgentLoginPage />} />
+      <Route path="/login" element={isAuthorizedAgent ? <Navigate to="/dashboard" replace /> : <AgentLoginPage />} />
 
       {/* Protected Mobile Routes */}
-      <Route
-        path="/"
-        element={
-          isAuthorizedAgent ? (
-            <MobileLayout />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      >
+      <Route path="/" element={isAuthorizedAgent ? <MobileLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<AgentDashboardPage />} />
         <Route path="leads" element={<AgentLeadsPage />} />
@@ -38,7 +29,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="profile" element={<AgentProfilePage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to={isAuthorizedAgent ? '/dashboard' : '/login'} replace />} />
     </Routes>
   );
 };

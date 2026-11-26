@@ -1,16 +1,27 @@
-// User Roles - 2 Dedicated Roles
-export type UserRole = 'ADMIN' | 'AGENT';
+// User Roles - must match the backend exactly (lowercase)
+export type UserRole = 'super_admin' | 'marketing_manager' | 'team_leader' | 'field_agent';
 
+export interface TeamRef {
+  id: string;
+  name: string;
+}
+
+/** Account as returned by the backend (/auth/me, /users). */
 export interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
+  employeeCode?: string;
   role: UserRole;
-  avatarUrl?: string;
-  teamId?: string;
-  teamName?: string;
+  teamId: string | null;
+  team: TeamRef | null;
+  isActive: boolean;
+  joiningDate?: string | null;
+  targetLeadsMonthly?: number | null;
+  lastLoginAt?: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 // Lead Statuses
@@ -44,35 +55,6 @@ export interface Lead {
   remarks?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-// Agent
-export interface Agent {
-  id: string;
-  agentCode: string;
-  name: string;
-  email: string;
-  phone: string;
-  photoUrl?: string;
-  teamId?: string;
-  teamName?: string;
-  joiningDate: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
-  targetLeadsMonthly?: number;
-  completedVisitsCount?: number;
-  conversionCount?: number;
-}
-
-// Team
-export interface Team {
-  id: string;
-  teamName: string;
-  teamLeaderId: string;
-  teamLeaderName: string;
-  agentCount: number;
-  leadCount: number;
-  conversionCount: number;
-  createdAt: string;
 }
 
 // Attendance
@@ -148,7 +130,7 @@ export interface ApiResponse<T> {
   meta?: {
     total: number;
     page: number;
-    pageSize: number;
+    limit: number;
     totalPages: number;
   };
 }

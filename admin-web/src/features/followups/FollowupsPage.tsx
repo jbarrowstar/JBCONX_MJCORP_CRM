@@ -1,328 +1,140 @@
-import React, { useState } from 'react';
-import { 
-  CheckSquare, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  Search, 
-  Phone, 
-  Users, 
-  CheckCircle2, 
-  AlertCircle,
-  X 
-} from 'lucide-react';
-import { FollowupTask, TaskType, TaskStatus } from '@shared/types';
-import { formatDate } from '@shared/utils';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlarmClock, CheckCircle2, Clock, ListChecks } from 'lucide-react';
+import { FOLLOWUP_TYPES, FOLLOWUP_TYPE_LABELS, formatDateTime, type FollowUpTypeValue } from '@shared/api/crm';
+import { errorMessage } from '@shared/api/errors';
+import { Pagination } from '../../components/common/Pagination';
+import { EmptyState, ErrorState, Spinner } from '../../components/common/States';
+import { useFollowUpSummaryQuery, useListFollowUpsQuery } from '../../redux/services/crmApi';
+import type { FollowUpQuery } from '../../redux/services/crmApi';
+import { useListStaffQuery } from '../../redux/services/staffApi';
+import { FollowUpActions, FollowUpStatusBadge } from './FollowUpList';
 
-const initialTasks: FollowupTask[] = [
-  {
-    id: 'tsk_1',
-    leadId: 'ld_1',
-    leadCode: 'LID-8821',
-    customerName: 'Robert Vance',
-    customerPhone: '+1 555-0192',
-    assignedAgentId: 'ag_1',
-    assignedAgentName: 'David Miller',
-    dueDate: '2026-11-06',
-    dueTime: '02:00 PM',
-    taskType: 'Demo',
-    status: 'PENDING',
-    remarks: 'Deliver online screen share demonstration of enterprise features.',
-    createdAt: '2026-11-04T10:00:00Z',
-  },
-  {
-    id: 'tsk_2',
-    leadId: 'ld_2',
-    leadCode: 'LID-8822',
-    customerName: 'Elena Rostova',
-    customerPhone: '+1 555-0381',
-    assignedAgentId: 'ag_2',
-    assignedAgentName: 'Sarah Jenkins',
-    dueDate: '2026-11-06',
-    dueTime: '04:30 PM',
-    taskType: 'Call',
-    status: 'PENDING',
-    remarks: 'Follow up on the quotation submitted yesterday.',
-    createdAt: '2026-11-05T09:00:00Z',
-  },
-  {
-    id: 'tsk_3',
-    leadId: 'ld_4',
-    leadCode: 'LID-8824',
-    customerName: 'Chloe Bennett',
-    customerPhone: '+1 555-4421',
-    assignedAgentId: 'ag_3',
-    assignedAgentName: 'James Carter',
-    dueDate: '2026-11-05',
-    dueTime: '11:00 AM',
-    taskType: 'Customer Visit',
-    status: 'OVERDUE',
-    remarks: 'Deliver product catalogue sample in person.',
-    createdAt: '2026-11-03T14:00:00Z',
-  }
+type Tab = 'overdue' | 'upcoming' | 'completed' | 'cancelled';
+const TABS: { id: Tab; label: string; status: NonNullable<FollowUpQuery['status']>; order: 'asc' | 'desc' }[] = [
+  { id: 'overdue', label: 'Overdue', status: 'overdue', order: 'asc' },
+  { id: 'upcoming', label: 'Upcoming', status: 'pending', order: 'asc' },
+  { id: 'completed', label: 'Completed', status: 'completed', order: 'desc' },
+  { id: 'cancelled', label: 'Cancelled', status: 'cancelled', order: 'desc' },
 ];
 
 export const FollowupsPage: React.FC = () => {
-  const [tasks, setTasks] = useState<FollowupTask[]>(initialTasks);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'OVERDUE' | 'COMPLETED'>('ALL');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>('overdue');
+  const [page, setPage] = useState(1);
+  const [type, setType] = useState<'' | FollowUpTypeValue>('');
+  const [agentId, setAgentId] = useState('');
+  const cfg = TABS.find((t) => t.id === tab)!;
 
-  // Form
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [agentName, setAgentName] = useState('David Miller');
-  const [dueDate, setDueDate] = useState('2026-11-07');
-  const [dueTime, setDueTime] = useState('14:00');
-  const [taskType, setTaskType] = useState<TaskType>('Call');
-  const [remarks, setRemarks] = useState('');
+  useEffect(() => setPage(1), [tab, type, agentId]);
 
-  const handleCreateTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customerName || !phone) return;
-
-    const newTask: FollowupTask = {
-      id: `tsk_${Date.now()}`,
-      leadId: `ld_${Date.now()}`,
-      leadCode: `LID-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName,
-      customerPhone: phone,
-      assignedAgentId: 'ag_1',
-      assignedAgentName: agentName,
-      dueDate,
-      dueTime,
-      taskType,
-      status: 'PENDING',
-      remarks,
-      createdAt: new Date().toISOString(),
-    };
-
-    setTasks([newTask, ...tasks]);
-    setIsAddModalOpen(false);
-    setCustomerName('');
-    setPhone('');
-    setRemarks('');
-  };
-
-  const handleMarkComplete = (id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status: 'COMPLETED' } : t));
-  };
-
-  const filteredTasks = tasks.filter(t => {
-    if (activeTab === 'ALL') return true;
-    return t.status === activeTab;
+  const summary = useFollowUpSummaryQuery();
+  const { data: agents } = useListStaffQuery({ role: 'field_agent', limit: 100, sort: 'name', order: 'asc' });
+  const { data, isLoading, isFetching, isError, error, refetch } = useListFollowUpsQuery({
+    page, limit: 15, status: cfg.status, order: cfg.order,
+    ...(type && { type }), ...(agentId && { assignedAgentId: agentId }),
   });
+
+  const s = summary.data;
+  const counts: Record<Tab, number | null> = {
+    overdue: s?.overdue ?? null,
+    upcoming: s ? s.pending - s.overdue : null,
+    completed: s?.completed ?? null,
+    cancelled: null,
+  };
+  const sel = 'text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+
+  const card = (icon: React.ReactNode, label: string, value: number | undefined, tone: string) => (
+    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tone}`}>{icon}</div>
+      <div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-xl font-bold text-slate-900" data-testid={`summary-${label.toLowerCase().replace(/\s+/g, '-')}`}>{value ?? '—'}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Follow-ups & Tasks</h1>
-          <p className="text-sm text-slate-500">Coordinate client phone calls, meetings, demos, and critical sales actions.</p>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Follow-ups & Tasks</h1>
+        <p className="text-sm text-slate-500">Calls, meetings and visits that are due. Schedule new ones from a lead.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {card(<AlarmClock className="w-5 h-5" />, 'Overdue', s?.overdue, 'bg-red-50 text-red-600')}
+        {card(<Clock className="w-5 h-5" />, 'Due today', s?.dueToday, 'bg-amber-50 text-amber-600')}
+        {card(<ListChecks className="w-5 h-5" />, 'Pending', s?.pending, 'bg-blue-50 text-blue-600')}
+        {card(<CheckCircle2 className="w-5 h-5" />, 'Completed', s?.completed, 'bg-emerald-50 text-emerald-600')}
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-slate-200">
+        <div role="tablist" className="flex gap-1">
+          {TABS.map((t) => (
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+              className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px ${tab === t.id ? 'border-[#274C77] text-[#274C77]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+              {t.label}{counts[t.id] != null ? ` (${counts[t.id]})` : ''}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#274C77] rounded-lg hover:bg-[#1B3B6F] shadow-sm transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" /> Schedule Task
-        </button>
+        <div className="flex items-center gap-2 pb-2">
+          <select aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value as '' | FollowUpTypeValue)} className={sel}>
+            <option value="">All types</option>
+            {FOLLOWUP_TYPES.map((t) => <option key={t} value={t}>{FOLLOWUP_TYPE_LABELS[t]}</option>)}
+          </select>
+          <select aria-label="Filter by agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={sel}>
+            <option value="">All agents</option>
+            {agents?.items.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
-        {(['ALL', 'PENDING', 'OVERDUE', 'COMPLETED'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all ${
-              activeTab === tab
-                ? 'border-[#274C77] text-[#274C77]'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab === 'ALL' ? 'All Tasks' : tab.charAt(0) + tab.slice(1).toLowerCase()}
-          </button>
-        ))}
-      </div>
-
-      {/* Tasks Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              <th className="py-3 px-4">Task & Type</th>
-              <th className="py-3 px-4">Customer Contact</th>
-              <th className="py-3 px-4">Assigned Agent</th>
-              <th className="py-3 px-4">Scheduled Due Date</th>
-              <th className="py-3 px-4">Instructions / Notes</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-            {filteredTasks.map(task => (
-              <tr key={task.id} className="hover:bg-slate-50 transition-colors">
-                <td className="py-3 px-4">
-                  <div className="font-semibold text-slate-900">{task.taskType}</div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">{task.leadCode}</div>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="font-medium text-slate-900">{task.customerName}</div>
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
-                    <Phone className="w-3 h-3 text-slate-400" />
-                    <span>{task.customerPhone}</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 font-medium text-slate-800">{task.assignedAgentName}</td>
-                <td className="py-3 px-4">
-                  <div>{formatDate(task.dueDate)}</div>
-                  <div className="text-[11px] text-slate-400">{task.dueTime}</div>
-                </td>
-                <td className="py-3 px-4">
-                  <p className="truncate max-w-xs text-slate-600">{task.remarks || '-'}</p>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    task.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                    task.status === 'OVERDUE' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                    'bg-blue-50 text-blue-700 border border-blue-200'
-                  }`}>
-                    {task.status}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-right">
-                  {task.status !== 'COMPLETED' && (
-                    <button
-                      onClick={() => handleMarkComplete(task.id)}
-                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-                    >
-                      Mark Complete
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Modal: Schedule Task */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Schedule Follow-up Task</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTask} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Customer Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Robert Vance"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Customer Phone *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 555-0192"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Task Type</label>
-                  <select
-                    value={taskType}
-                    onChange={(e) => setTaskType(e.target.value as TaskType)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  >
-                    <option value="Call">Call</option>
-                    <option value="Meeting">Meeting</option>
-                    <option value="Customer Visit">Customer Visit</option>
-                    <option value="Demo">Demo</option>
-                    <option value="Documentation">Documentation</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assign Agent</label>
-                  <select
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  >
-                    <option value="David Miller">David Miller</option>
-                    <option value="Sarah Jenkins">Sarah Jenkins</option>
-                    <option value="James Carter">James Carter</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Due Time</label>
-                  <input
-                    type="time"
-                    value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Task Remarks</label>
-                <textarea
-                  rows={2}
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="Details for the agent..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm"
-                >
-                  Confirm Task
-                </button>
-              </div>
-            </form>
+      {isLoading ? (
+        <Spinner label="Loading follow-ups…" />
+      ) : isError ? (
+        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+      ) : data!.items.length === 0 ? (
+        <EmptyState title={`No ${cfg.label.toLowerCase()} follow-ups`} hint={tab === 'overdue' ? 'Nothing is overdue. Nice.' : undefined} />
+      ) : (
+        <>
+          <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
+            <table className="w-full text-left border-collapse min-w-[860px]" data-testid="followup-table">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">Task</th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Agent</th>
+                  <th className="py-3 px-4">Due</th>
+                  <th className="py-3 px-4">Notes</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                {data!.items.map((f) => (
+                  <tr key={f.id} data-testid="followup-row" className="hover:bg-slate-50">
+                    <td className="py-3 px-4 font-semibold text-slate-900">{FOLLOWUP_TYPE_LABELS[f.type]}</td>
+                    <td className="py-3 px-4">
+                      {f.lead ? (
+                        <Link to={`/admin/leads?lead=${f.lead.id}`} className="font-medium text-[#274C77] hover:underline">{f.lead.customerName}</Link>
+                      ) : '—'}
+                      <div className="text-[11px] text-slate-400 font-mono">{f.lead?.leadCode}</div>
+                    </td>
+                    <td className="py-3 px-4">{f.assignedAgent?.name ?? '—'}</td>
+                    <td className={`py-3 px-4 whitespace-nowrap ${f.isOverdue ? 'text-red-600 font-semibold' : ''}`}>{formatDateTime(f.dueAt)}</td>
+                    <td className="py-3 px-4 max-w-[220px]">
+                      <div className="truncate" title={f.notes ?? undefined}>{f.notes ?? '—'}</div>
+                      {f.outcomeNotes && <div className="text-emerald-700 truncate" title={f.outcomeNotes}>Outcome: {f.outcomeNotes}</div>}
+                    </td>
+                    <td className="py-3 px-4"><FollowUpStatusBadge f={f} /></td>
+                    <td className="py-3 px-4 text-right"><div className="inline-block"><FollowUpActions followUp={f} /></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+          <Pagination meta={data!.meta} onPage={setPage} busy={isFetching} />
+        </>
       )}
     </div>
   );
 };
-

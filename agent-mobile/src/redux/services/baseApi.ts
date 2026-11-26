@@ -1,21 +1,22 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../store';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createBaseQuery, resolveApiBaseUrl } from '@shared/api/createBaseQuery';
+import { mobileTokenStorage } from '../../auth/tokenStorage';
+import { logout } from '../slices/authSlice';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.jbconx.example.com/v1';
+export const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, import.meta.env.DEV);
 
 export const baseApi = createApi({
   reducerPath: 'baseApi',
-  baseQuery: fetchBaseQuery({
+  baseQuery: createBaseQuery({
     baseUrl: API_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
+    // Narrow structural type on purpose: importing RootState here would make the store type circular.
+    getToken: ({ getState }) => (getState() as { auth: { token: string | null } }).auth.token,
+    onUnauthorized: (api) => {
+      void mobileTokenStorage.clear();
+      api.dispatch(logout());
+      api.dispatch({ type: 'baseApi/resetApiState' });
     },
   }),
-  tagTypes: ['AgentDashboard', 'MyLeads', 'MyAttendance', 'MyVisits', 'MyFollowups', 'MyProfile'],
+  tagTypes: ['Me', 'Team', 'Lead', 'Activity', 'Followup', 'Settings', 'Report', 'Attendance', 'Visit', 'Photos', 'AgentDashboard', 'MyAttendance', 'MyVisits'],
   endpoints: () => ({}),
 });
-

@@ -1,570 +1,258 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  Download, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar,
-  X
-} from 'lucide-react';
-import { Lead, LeadStatus } from '@shared/types';
-import { LEAD_STATUS_CONFIG } from '@shared/constants';
-import { formatDate } from '@shared/utils';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, Plus, Download, Filter, UserCog } from 'lucide-react';
+import { LeadStatusBadge, PriorityBadge } from '@shared/components/LeadBadges';
+import {
+  LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, formatDateTime, type LeadDto, type PriorityValue,
+} from '@shared/api/crm';
+import { errorMessage } from '@shared/api/errors';
+import { Pagination } from '../../components/common/Pagination';
+import { EmptyState, ErrorState, Spinner } from '../../components/common/States';
+import { useDebounced } from '../../hooks/useDebounced';
+import { useAppSelector } from '../../redux/hooks';
+import { useGetPublicSettingsQuery, useListLeadsQuery } from '../../redux/services/crmApi';
+import type { LeadQuery } from '../../redux/services/crmApi';
+import { useListStaffQuery } from '../../redux/services/staffApi';
+import { useListTeamsQuery } from '../../redux/services/teamApi';
 import { exportToCSV } from '../../utils/exportUtils';
+import { AssignLeadModal } from './AssignLeadModal';
+import { LeadDetailDrawer } from './LeadDetailDrawer';
+import { LeadFormModal } from './LeadFormModal';
 
-const initialLeads: Lead[] = [
-  {
-    id: 'ld_1',
-    leadCode: 'LID-8821',
-    customerName: 'Robert Vance',
-    mobileNumber: '+1 555-0192',
-    email: 'robert@vancecorp.com',
-    city: 'Chicago',
-    state: 'IL',
-    leadSource: 'Field Visit',
-    interestedService: 'Commercial Marketing Bundle',
-    assignedAgentName: 'David Miller',
-    assignedAgentId: 'ag_1',
-    teamName: 'Northern Squad',
-    status: 'Interested',
-    remarks: 'Met on-site. Very positive initial presentation.',
-    createdAt: '2026-10-24T10:15:00Z',
-    updatedAt: '2026-10-25T14:30:00Z',
-  },
-  {
-    id: 'ld_2',
-    leadCode: 'LID-8822',
-    customerName: 'Elena Rostova',
-    mobileNumber: '+1 555-0381',
-    email: 'elena@novatech.io',
-    city: 'Austin',
-    state: 'TX',
-    leadSource: 'Inbound Web',
-    interestedService: 'Enterprise CRM Setup',
-    assignedAgentName: 'Sarah Jenkins',
-    assignedAgentId: 'ag_2',
-    teamName: 'Western Squad',
-    status: 'Meeting Scheduled',
-    remarks: 'Demo call scheduled for coming Tuesday at 2 PM.',
-    createdAt: '2026-10-25T11:00:00Z',
-    updatedAt: '2026-10-25T15:20:00Z',
-  },
-  {
-    id: 'ld_3',
-    leadCode: 'LID-8823',
-    customerName: 'Marcus Aurelius',
-    mobileNumber: '+1 555-9921',
-    city: 'New York',
-    state: 'NY',
-    leadSource: 'Referral',
-    interestedService: 'Digital Advertising Strategy',
-    assignedAgentName: 'David Miller',
-    assignedAgentId: 'ag_1',
-    teamName: 'Northern Squad',
-    status: 'Converted',
-    remarks: 'Contracts signed. Proceeding with customer onboarding.',
-    createdAt: '2026-10-22T09:00:00Z',
-    updatedAt: '2026-10-26T16:00:00Z',
-  },
-  {
-    id: 'ld_4',
-    leadCode: 'LID-8824',
-    customerName: 'Chloe Bennett',
-    mobileNumber: '+1 555-4421',
-    email: 'chloe@bennettretail.com',
-    city: 'Atlanta',
-    state: 'GA',
-    leadSource: 'Cold Call',
-    interestedService: 'Brand Launch Campaign',
-    assignedAgentName: 'James Carter',
-    assignedAgentId: 'ag_3',
-    teamName: 'Southern Squad',
-    status: 'New',
-    remarks: 'Initial contact made; awaiting callback request.',
-    createdAt: '2026-10-26T08:30:00Z',
-    updatedAt: '2026-10-26T08:30:00Z',
-  }
+const PAGE_SIZE = 15;
+
+const SORTS: { value: string; label: string; sort: NonNullable<LeadQuery['sort']>; order: 'asc' | 'desc' }[] = [
+  { value: 'new', label: 'Newest first', sort: 'createdAt', order: 'desc' },
+  { value: 'old', label: 'Oldest first', sort: 'createdAt', order: 'asc' },
+  { value: 'name', label: 'Customer A–Z', sort: 'customerName', order: 'asc' },
+  { value: 'followup', label: 'Next follow-up (soonest)', sort: 'nextFollowUpAt', order: 'asc' },
+  { value: 'updated', label: 'Recently updated', sort: 'updatedAt', order: 'desc' },
 ];
 
 export const LeadManagementPage: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const actor = useAppSelector((s) => s.auth.user)!;
+  const isLeader = actor.role === 'team_leader';
+  const [params, setParams] = useSearchParams();
+  const openId = params.get('lead');
 
-  // New Lead Form State
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newMobile, setNewMobile] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newCity, setNewCity] = useState('');
-  const [newState, setNewState] = useState('');
-  const [newService, setNewService] = useState('Commercial Marketing Bundle');
-  const [newSource, setNewSource] = useState('Field Visit');
-  const [newRemarks, setNewRemarks] = useState('');
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [priority, setPriority] = useState<'' | PriorityValue>('');
+  const [teamId, setTeamId] = useState('');
+  const [agentId, setAgentId] = useState('');
+  const [source, setSource] = useState('');
+  const [followUp, setFollowUp] = useState<'' | 'overdue' | 'today' | 'upcoming' | 'none'>('');
+  const [unassigned, setUnassigned] = useState(false);
+  const [sortKey, setSortKey] = useState('new');
+  const debounced = useDebounced(search.trim());
+  const sort = SORTS.find((s) => s.value === sortKey)!;
 
-  const handleCreateLead = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustomerName || !newMobile) return;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [creating, setCreating] = useState(false);
+  const [assigning, setAssigning] = useState<LeadDto[] | null>(null);
 
-    const newLeadRecord: Lead = {
-      id: `ld_${Date.now()}`,
-      leadCode: `LID-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: newCustomerName,
-      mobileNumber: newMobile,
-      email: newEmail || undefined,
-      city: newCity || 'National',
-      state: newState || 'HQ',
-      leadSource: newSource,
-      interestedService: newService,
-      assignedAgentName: 'David Miller',
-      assignedAgentId: 'ag_1',
-      teamName: 'Northern Squad',
-      status: 'New',
-      remarks: newRemarks,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  useEffect(() => {
+    setPage(1);
+    setSelected(new Set());
+  }, [debounced, status, priority, teamId, agentId, source, followUp, unassigned, sortKey]);
 
-    setLeads([newLeadRecord, ...leads]);
-    setIsAddModalOpen(false);
-    // Reset Form
-    setNewCustomerName('');
-    setNewMobile('');
-    setNewEmail('');
-    setNewCity('');
-    setNewState('');
-    setNewRemarks('');
+  const { data: settings } = useGetPublicSettingsQuery();
+  const { data: teams } = useListTeamsQuery({ limit: 100 }, { skip: isLeader });
+  const { data: agents } = useListStaffQuery({ role: 'field_agent', limit: 100, sort: 'name', order: 'asc', ...(teamId && { teamId }) });
+
+  const query: LeadQuery = {
+    page, limit: PAGE_SIZE, sort: sort.sort, order: sort.order,
+    ...(debounced && { search: debounced }),
+    ...(status && { status }),
+    ...(priority && { priority }),
+    ...(teamId && { teamId }),
+    ...(agentId && { assignedAgentId: agentId }),
+    ...(source && { leadSource: source }),
+    ...(followUp && { followUp }),
+    ...(unassigned && { unassigned: true }),
+  };
+  const { data, isLoading, isFetching, isError, error, refetch } = useListLeadsQuery(query);
+
+  const items = data?.items ?? [];
+  const allOnPage = items.length > 0 && items.every((l) => selected.has(l.id));
+  const selectedLeads = useMemo(() => items.filter((l) => selected.has(l.id)), [items, selected]);
+
+  const toggle = (id: string) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setSelected(allOnPage ? new Set() : new Set(items.map((l) => l.id)));
+
+  const openLead = (id: string | null) => {
+    const next = new URLSearchParams(params);
+    if (id) next.set('lead', id);
+    else next.delete('lead');
+    setParams(next, { replace: true });
   };
 
-  const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
-    setLeads(leads.map(l => l.id === leadId ? { ...l, status: newStatus, updatedAt: new Date().toISOString() } : l));
-    if (selectedLead && selectedLead.id === leadId) {
-      setSelectedLead({ ...selectedLead, status: newStatus, updatedAt: new Date().toISOString() });
-    }
-  };
-
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch = 
-      lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.leadCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.mobileNumber.includes(searchTerm);
-    const matchesStatus = statusFilter === 'ALL' || lead.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleExport = () => {
+  const exportPage = () =>
     exportToCSV(
-      filteredLeads,
-      'JBConX_Leads_Report',
+      items.map((l) => ({
+        code: l.leadCode, customer: l.customerName, mobile: l.mobileNumber, email: l.email ?? '', city: l.city, state: l.state,
+        source: l.leadSource, service: l.interestedService, status: LEAD_STATUS_LABELS[l.status], priority: PRIORITY_LABELS[l.priority],
+        agent: l.assignedAgent?.name ?? '', team: l.team?.name ?? '', nextFollowUp: l.nextFollowUpAt ?? '', created: l.createdAt,
+      })),
+      `leads-page-${page}.csv`,
       [
-        { key: 'leadCode', label: 'Lead ID' },
-        { key: 'customerName', label: 'Customer Name' },
-        { key: 'mobileNumber', label: 'Mobile Number' },
-        { key: 'email', label: 'Email' },
-        { key: 'city', label: 'City' },
-        { key: 'state', label: 'State' },
-        { key: 'leadSource', label: 'Lead Source' },
-        { key: 'interestedService', label: 'Interested Service' },
-        { key: 'assignedAgentName', label: 'Assigned Agent' },
-        { key: 'teamName', label: 'Team Squad' },
-        { key: 'status', label: 'Current Status' },
-        { key: 'remarks', label: 'Remarks / Notes' },
-        { key: 'createdAt', label: 'Creation Date' },
+        { key: 'code', label: 'Lead code' }, { key: 'customer', label: 'Customer' }, { key: 'mobile', label: 'Mobile' }, { key: 'email', label: 'Email' },
+        { key: 'city', label: 'City' }, { key: 'state', label: 'State' }, { key: 'source', label: 'Source' }, { key: 'service', label: 'Service' },
+        { key: 'status', label: 'Status' }, { key: 'priority', label: 'Priority' }, { key: 'agent', label: 'Assigned agent' }, { key: 'team', label: 'Team' },
+        { key: 'nextFollowUp', label: 'Next follow-up' }, { key: 'created', label: 'Created' },
       ]
     );
-  };
+
+  const sel = 'text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]';
+  const filtered = !!(debounced || status || priority || teamId || agentId || source || followUp || unassigned);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Lead Management</h1>
-          <p className="text-sm text-slate-500">Track, qualify, assign, and convert prospects across field sales channels.</p>
+          <p className="text-sm text-slate-500">Create, assign and track every lead through to conversion.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={handleExport}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
-            title="Download Excel CSV file"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600" /> Export to Excel
+          <button type="button" onClick={exportPage} disabled={items.length === 0} title="Exports the rows currently shown on this page" className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50">
+            <Download className="w-3.5 h-3.5" /> Export this page
           </button>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#274C77] rounded-lg hover:bg-[#1B3B6F] shadow-sm transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add New Lead
+          <button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#274C77] rounded-lg hover:bg-[#1B3B6F] shadow-sm">
+            <Plus className="w-3.5 h-3.5" /> New lead
           </button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by customer, code, phone..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#274C77] focus:bg-white text-slate-800"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="New">New</option>
-            <option value="Assigned">Assigned</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Interested">Interested</option>
-            <option value="Meeting Scheduled">Meeting Scheduled</option>
-            <option value="Converted">Converted</option>
-            <option value="Registered">Registered</option>
-            <option value="Onboarded">Onboarded</option>
-            <option value="Lost">Lost</option>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+          <div className="relative w-full lg:w-96">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="search" aria-label="Search leads" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, mobile, email, code or city…" className={`${sel} w-full pl-9`} />
+          </div>
+          <select aria-label="Sort leads" value={sortKey} onChange={(e) => setSortKey(e.target.value)} className={sel}>
+            {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)} className={sel}>
+            <option value="">All statuses</option>
+            <option value="new,assigned,contacted,interested,meeting_scheduled">Open leads</option>
+            {LEAD_STATUSES.map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}
+          </select>
+          <select aria-label="Filter by priority" value={priority} onChange={(e) => setPriority(e.target.value as '' | PriorityValue)} className={sel}>
+            <option value="">Any priority</option>
+            {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+          </select>
+          {!isLeader && (
+            <select aria-label="Filter by team" value={teamId} onChange={(e) => { setTeamId(e.target.value); setAgentId(''); }} className={sel}>
+              <option value="">All teams</option>
+              {teams?.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <select aria-label="Filter by agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={sel}>
+            <option value="">All agents</option>
+            {agents?.items.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <select aria-label="Filter by source" value={source} onChange={(e) => setSource(e.target.value)} className={sel}>
+            <option value="">Any source</option>
+            {settings?.operational.leadSources.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select aria-label="Filter by follow-up" value={followUp} onChange={(e) => setFollowUp(e.target.value as typeof followUp)} className={sel}>
+            <option value="">Any follow-up</option>
+            <option value="overdue">Overdue</option>
+            <option value="today">Due today</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="none">None scheduled</option>
+          </select>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+            <input type="checkbox" checked={unassigned} onChange={(e) => setUnassigned(e.target.checked)} className="w-4 h-4 rounded border-slate-300" /> Unassigned only
+          </label>
+        </div>
       </div>
 
-      {/* Leads Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-4">Lead ID / Customer</th>
-                <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4">Interested Service</th>
-                <th className="py-3 px-4">Assigned Agent / Squad</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {filteredLeads.map((lead) => {
-                const statusStyle = LEAD_STATUS_CONFIG[lead.status] || {
-                  label: lead.status,
-                  color: 'text-slate-700',
-                  bg: 'bg-slate-100 border-slate-200',
-                };
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs">
+          <span className="font-semibold text-[#274C77]">{selected.size} selected</span>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setSelected(new Set())} className="px-3 py-1.5 font-semibold text-slate-600 hover:bg-white rounded-lg">Clear</button>
+            <button type="button" onClick={() => setAssigning(selectedLeads)} className="inline-flex items-center gap-1.5 px-3 py-1.5 font-semibold text-white bg-[#274C77] rounded-lg">
+              <UserCog className="w-3.5 h-3.5" /> Assign selected
+            </button>
+          </div>
+        </div>
+      )}
 
-                const handleExport = () => {
-    exportToCSV(
-      filteredLeads,
-      'JBConX_Leads_Report',
-      [
-        { key: 'leadCode', label: 'Lead ID' },
-        { key: 'customerName', label: 'Customer Name' },
-        { key: 'mobileNumber', label: 'Mobile Number' },
-        { key: 'email', label: 'Email' },
-        { key: 'city', label: 'City' },
-        { key: 'state', label: 'State' },
-        { key: 'leadSource', label: 'Lead Source' },
-        { key: 'interestedService', label: 'Interested Service' },
-        { key: 'assignedAgentName', label: 'Assigned Agent' },
-        { key: 'teamName', label: 'Team Squad' },
-        { key: 'status', label: 'Current Status' },
-        { key: 'remarks', label: 'Remarks / Notes' },
-        { key: 'createdAt', label: 'Creation Date' },
-      ]
-    );
-  };
-
-  return (
-                  <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+      {isLoading ? (
+        <Spinner label="Loading leads…" />
+      ) : isError ? (
+        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+      ) : items.length === 0 ? (
+        <EmptyState title={filtered ? 'No leads match these filters' : 'No leads yet'} hint={filtered ? 'Try clearing a filter.' : 'Create the first lead with "New lead".'} />
+      ) : (
+        <>
+          <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
+            <table className="w-full text-left border-collapse min-w-[900px]" data-testid="lead-table">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4 w-8"><input type="checkbox" aria-label="Select all leads on this page" checked={allOnPage} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300" /></th>
+                  <th className="py-3 px-4">Lead</th>
+                  <th className="py-3 px-4">Contact</th>
+                  <th className="py-3 px-4">Interest</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Assigned to</th>
+                  <th className="py-3 px-4">Next follow-up</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                {items.map((l) => (
+                  <tr key={l.id} data-testid="lead-row" className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4"><input type="checkbox" aria-label={`Select ${l.customerName}`} checked={selected.has(l.id)} onChange={() => toggle(l.id)} className="w-4 h-4 rounded border-slate-300" /></td>
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-900">{lead.customerName}</div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">{lead.leadCode}</div>
-                    </td>
-                    <td className="py-3 px-4 space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-slate-600">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        <span>{lead.mobileNumber}</span>
-                      </div>
-                      {lead.email && (
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          <span>{lead.email}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-slate-800">{lead.interestedService}</span>
-                      <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                        <MapPin className="w-3 h-3" /> {lead.city}, {lead.state}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-slate-800">{lead.assignedAgentName || 'Unassigned'}</div>
-                      <div className="text-[11px] text-slate-400">{lead.teamName || 'Squad Unassigned'}</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.bg} ${statusStyle.color}`}>
-                        {lead.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-slate-400" />
-                        {formatDate(lead.createdAt)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedLead(lead)}
-                        className="text-xs font-semibold text-[#274C77] hover:underline"
-                      >
-                        Inspect
+                      <button type="button" onClick={() => openLead(l.id)} className="text-left">
+                        <div className="font-semibold text-slate-900 hover:underline">{l.customerName}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">{l.leadCode} · {l.city}</div>
                       </button>
                     </td>
+                    <td className="py-3 px-4">
+                      <div>{l.mobileNumber}</div>
+                      {l.email && <div className="text-[11px] text-slate-400">{l.email}</div>}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div>{l.interestedService}</div>
+                      <div className="text-[11px] text-slate-400">{l.leadSource}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col items-start gap-1"><LeadStatusBadge status={l.status} /><PriorityBadge priority={l.priority} /></div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{l.assignedAgent?.name ?? <span className="text-amber-600">Unassigned</span>}</div>
+                      <div className="text-[11px] text-slate-400">{l.team?.name ?? '—'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {l.nextFollowUpAt ? (
+                        <span className={l.isFollowUpOverdue ? 'text-red-600 font-semibold' : ''}>{formatDateTime(l.nextFollowUpAt)}{l.isFollowUpOverdue ? ' · overdue' : ''}</span>
+                      ) : <span className="text-slate-400">—</span>}
+                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Modal: Lead Details Drawer / View */}
-      {selectedLead && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-mono text-[#274C77] bg-blue-50 px-2 py-0.5 rounded">
-                  {selectedLead.leadCode}
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 mt-1">{selectedLead.customerName}</h2>
-              </div>
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Status Update Strip */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-slate-600">Current Lifecycle Status</span>
-                  <div className="mt-1">
-                    <span className="text-xs font-bold text-slate-900">{selectedLead.status}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Update to:</span>
-                  <select
-                    value={selectedLead.status}
-                    onChange={(e) => handleStatusChange(selectedLead.id, e.target.value as LeadStatus)}
-                    className="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-semibold text-[#274C77] focus:outline-none"
-                  >
-                    <option value="New">New</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="Contacted">Contacted</option>
-                    <option value="Interested">Interested</option>
-                    <option value="Meeting Scheduled">Meeting Scheduled</option>
-                    <option value="Converted">Converted</option>
-                    <option value="Registered">Registered</option>
-                    <option value="Onboarded">Onboarded</option>
-                    <option value="Lost">Lost</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-slate-400 font-medium">Customer Phone</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.mobileNumber}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-medium">Customer Email</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-medium">Service Interest</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.interestedService}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-medium">Territory Location</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.city}, {selectedLead.state}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-medium">Assigned Field Agent</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.assignedAgentName || 'Unassigned'}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-medium">Regional Squad</span>
-                  <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.teamName || 'None'}</p>
-                </div>
-              </div>
-
-              {/* Remarks */}
-              <div>
-                <span className="text-xs text-slate-400 font-medium">Agent On-Site Notes & Remarks</span>
-                <p className="mt-1 text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  {selectedLead.remarks || 'No notes provided yet.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-100"
-              >
-                Close Drawer
-              </button>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+          <Pagination meta={data!.meta} onPage={setPage} busy={isFetching} />
+        </>
       )}
 
-      {/* Modal: Add Lead Form */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add New Prospect Lead</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateLead} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Customer / Organization Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  placeholder="e.g. Acme Industrial Corp"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={newMobile}
-                    onChange={(e) => setNewMobile(e.target.value)}
-                    placeholder="+1 555-0199"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="contact@acme.com"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    value={newCity}
-                    onChange={(e) => setNewCity(e.target.value)}
-                    placeholder="e.g. Dallas"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">State</label>
-                  <input
-                    type="text"
-                    value={newState}
-                    onChange={(e) => setNewState(e.target.value)}
-                    placeholder="TX"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Source</label>
-                  <select
-                    value={newSource}
-                    onChange={(e) => setNewSource(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  >
-                    <option value="Field Visit">Field Visit</option>
-                    <option value="Inbound Web">Inbound Web</option>
-                    <option value="Referral">Referral</option>
-                    <option value="Cold Call">Cold Call</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Interested Service</label>
-                  <select
-                    value={newService}
-                    onChange={(e) => setNewService(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                  >
-                    <option value="Commercial Marketing Bundle">Commercial Marketing</option>
-                    <option value="Enterprise CRM Setup">Enterprise CRM</option>
-                    <option value="Digital Advertising Strategy">Digital Advertising</option>
-                    <option value="Brand Launch Campaign">Brand Launch</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Remarks / Requirements</label>
-                <textarea
-                  rows={2}
-                  value={newRemarks}
-                  onChange={(e) => setNewRemarks(e.target.value)}
-                  placeholder="Notes from initial interaction..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#274C77]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#274C77] hover:bg-[#1B3B6F] rounded-lg shadow-sm"
-                >
-                  Save Lead
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {creating && <LeadFormModal onClose={() => setCreating(false)} onSaved={(l) => openLead(l.id)} />}
+      {assigning && <AssignLeadModal leads={assigning} onClose={() => setAssigning(null)} onDone={() => setSelected(new Set())} />}
+      {openId && <LeadDetailDrawer leadId={openId} onClose={() => openLead(null)} />}
     </div>
   );
 };

@@ -22,7 +22,9 @@ export function exportToCSV<T extends Record<string, any>>(
     cols
       .map((c) => {
         const val = item[c.key];
-        const str = val === null || val === undefined ? '' : String(val);
+        let str = val === null || val === undefined ? '' : String(val);
+        // Neutralise spreadsheet formula injection (=, +, -, @, tab, CR at the start of a cell).
+        if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`;
         return `"${str.replace(/"/g, '""')}"`;
       })
       .join(',')

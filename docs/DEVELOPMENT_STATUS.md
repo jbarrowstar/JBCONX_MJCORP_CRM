@@ -1,39 +1,37 @@
-# JBConX Marketing CRM - Development Status
+# Development Status (accurate as of 21 Nov 2026)
 
-## Completed Modules & Architectural Status
+This file replaces an earlier version that marked nearly every screen "completed". Those screens were visual prototypes driven by sample data. Status below reflects what actually talks to the real backend.
 
-### 1. Project Infrastructure [COMPLETED]
-- **Workspaces**: npm workspaces established connecting `admin-web`, `agent-mobile`, and `shared`.
-- **TypeScript**: Strict compilation across both applications.
-- **Tailwind CSS**: Enterprise design tokens (#274C77, #6096BA, #A3CEF1, #E7ECEF) fully active.
-- **State Management**: Independent Redux Toolkit stores and RTK Query base APIs configured in both projects.
+## Connected to the real backend (tested)
 
-### 2. Admin Web Portal [COMPLETED]
-- **Authentication**: `AdminLoginPage.tsx` with Zod validation, role recognition, password toggles, and session handling.
-- **Layout Architecture**: `AdminSidebar.tsx`, `AdminHeader.tsx`, dynamic drawer states, and user badge summaries.
-- **Executive Dashboard**: `AdminDashboardPage.tsx` with KPI summary cards, Recharts 6-month lead acquisition trend, and lead source distribution.
-- **Lead Management**: `LeadManagementPage.tsx` with search, multi-lifecycle filter, export action, drawer inspect view, and new lead creation modal.
-- **Agent Management**: `AgentManagementPage.tsx` with quota target tracking, conversion rate calculation, and onboard modal.
-- **Team Management**: `TeamManagementPage.tsx` with squad leader appointment, efficiency progress bars, and decommission flows.
-- **Field Tracking**: `FieldTrackingPage.tsx` with live GPS telemetry simulation, coordinate readouts, and map marker inspection.
-- **Visits & Attendance**: `AttendancePage.tsx` with check-in/out timestamps, hours calculation, and GPS verification addresses.
-- **Customer Visits**: `CustomerVisitsPage.tsx` with on-site meeting notes, client lookup, and geofence verification indicators.
-- **Follow-ups & Tasks**: `FollowupsPage.tsx` with status tabs (Pending, Overdue, Completed), demo/call scheduling modal, and completion triggers.
-- **Registration & Onboarding**: `OnboardingPage.tsx` with customer KYC audit, document checks, and compliance approval triggers.
-- **Reports & Analytics**: `ReportsPage.tsx` with squad throughput comparative bar charts and product distribution breakdowns.
-- **Settings**: `SettingsPage.tsx` with organization branding, strict geofence radius toggles, and dispatch configurations.
+| Area | App | Notes |
+|---|---|---|
+| Login, current user, logout, session restore, change password | admin web + agent mobile | JWT, server-side revocation, 4 lowercase roles |
+| Role-based routes and navigation | admin web (+ mobile guard) | backend re-enforces everything |
+| Staff management | admin web | create, edit, activate/deactivate, reset password, search, filter, pagination |
+| Team management | admin web | create/edit/delete, leader, roster add/remove, counts |
+| Agent profile | agent mobile | real account data |
+| Lead management (list, filters, create/edit, status, assign, bulk assign, notes, timeline) | admin web | CSV export covers the visible page only |
+| Follow-ups & tasks (overdue/upcoming/done, complete, reschedule, cancel) | admin web | scheduled from a lead |
+| Dashboard (KPIs, trend, sources, pipeline, attendance today) and Reports (team, agent, attendance, visits, onboarding, funnel; date ranges; CSV) | admin web | role-scoped aggregates from the backend |
+| Dashboard (own numbers, target progress, 30-day activity) | agent mobile | |
+| Visits & Attendance monitoring (records, GPS links, flags, mark leave/absence, fix check-out) and Customer Visits (list, filters, drawer, photos, edit) | admin web | map links open OpenStreetMap; no coordinates are sent to third parties by the CRM |
+| Attendance (check in/out with GPS) and Customer visits (record with GPS + photos) | agent mobile | browser geolocation/file input; native Capacitor paths untested |
+| My leads, lead details, status, notes, new lead, follow-ups | agent mobile | respects the admin 'agents can create leads' setting |
 
-### 3. Field Agent Mobile App (Capacitor Ready) [COMPLETED]
-- **Agent Authentication**: `AgentLoginPage.tsx` with quick agent ID sign-in.
-- **Agent Dashboard**: `AgentDashboardPage.tsx` with live shift punch status, KPI metrics, quick action shortcuts, and upcoming schedule.
-- **Agent Lead Operations**: `AgentLeadsPage.tsx` with prospect creation, mobile phone dialing integration, and status indicators.
-- **GPS Shift Attendance**: `AgentAttendancePage.tsx` with live geofence verification and check-in / check-out toggle.
-- **Customer Visits with Camera**: `AgentVisitsPage.tsx` with native camera simulation and automatic coordinate tagging.
-- **Agent Profile**: `AgentProfilePage.tsx` with quota target progress bars and sign-out controls.
+## Preview only (sample data, marked "Preview" in the UI)
 
-### 4. Verification & Testing
-- **TypeScript Typecheck**: Clean pass across all workspaces (`tsc --noEmit` exited with code 0).
-- **Vite Production Bundles**:
-  - `admin-web`: Built in 58.28s.
-  - `agent-mobile`: Built in 1m 19s.
-- **Dev Servers**: Both running simultaneously on separate ports (Admin: `http://localhost:3000/`, Mobile: `http://localhost:3001/`).
+Field tracking, Onboarding/documents, Settings (admin web). The agent mobile app has no preview screens left. Backend endpoints for all of these exist and are documented in the backend `docs/API_CONTRACT.md`; the screens are wired in later phases.
+
+## Not done
+
+- Native Capacitor features: camera, geolocation permissions, Android project, device testing (Phase 7). The GPS/photo code paths exist and the browser paths are tested; native paths are not. Mobile token storage uses `@capacitor/preferences` code that is untested on a device and is not encrypted storage.
+- Real map for tracking.
+- Frontend tests for preview screens.
+- Dependency upgrades flagged by `npm audit` (react-router 7, zod 4) are deferred; see `FRONTEND_TESTING.md`.
+
+## Removed
+
+- Fabricated "live" store-downloads card (hardcoded numbers + random increments) and its types.
+- Embedded agent portal inside the admin web (the mobile app is the only agent client).
+- Hard-coded logged-in users, pre-filled demo credentials, the fake notification, dead login pages.

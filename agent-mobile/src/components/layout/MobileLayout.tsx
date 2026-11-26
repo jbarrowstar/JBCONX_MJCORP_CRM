@@ -10,7 +10,8 @@ import {
   LogOut 
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
-import { logout } from '../../redux/slices/authSlice';
+import { signOut } from '../../redux/session';
+import { ToastHost } from '../common/ToastHost';
 import { MobileThemeSelector } from '../common/MobileThemeSelector';
 import { CRM_THEMES } from '@shared/constants/themes';
 import { JBConXLogo } from '@shared/components/JBConXLogo';
@@ -45,11 +46,11 @@ export const MobileLayout: React.FC = () => {
               className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center text-sm shadow-md"
               style={{ backgroundColor: themeConfig.secondary }}
             >
-              {user?.name?.[0] || 'A'}
+              {user?.name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
-              <p className="text-[11px] text-slate-500 truncate">{user?.teamName || 'Northern Squad'}</p>
+              <p className="text-[11px] text-slate-500 truncate">{user?.team?.name ?? 'No team yet'}</p>
             </div>
           </div>
         </div>
@@ -85,7 +86,7 @@ export const MobileLayout: React.FC = () => {
         {/* Sign Out Button in Desktop/Tablet Sidebar */}
         <div className="p-4 border-t border-slate-100">
           <button
-            onClick={() => dispatch(logout())}
+            onClick={() => void signOut(dispatch)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-100"
           >
             <LogOut className="w-4 h-4" />
@@ -103,8 +104,7 @@ export const MobileLayout: React.FC = () => {
             <span>Active Suite Theme: <strong style={{ color: themeConfig.secondary }}>{themeConfig.name}</strong></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-emerald-700 font-bold">Shift Active</span>
+            <span className="text-xs text-slate-500 font-bold">{user?.employeeCode ?? ''}</span>
           </div>
         </header>
 
@@ -140,6 +140,7 @@ export const MobileLayout: React.FC = () => {
           );
         })}
       </nav>
+      <ToastHost />
     </div>
   );
 };

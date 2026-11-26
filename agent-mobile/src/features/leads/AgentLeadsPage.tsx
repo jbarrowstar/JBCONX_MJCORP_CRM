@@ -1,289 +1,152 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  ChevronRight, 
-  X,
-  Send 
-} from 'lucide-react';
-import { Lead } from '@shared/types';
-import { LEAD_STATUS_CONFIG } from '@shared/constants';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus, Phone, MapPin, CalendarClock } from 'lucide-react';
+import { LeadStatusBadge, PriorityBadge } from '@shared/components/LeadBadges';
+import { LEAD_STATUSES, LEAD_STATUS_LABELS, formatDateTime } from '@shared/api/crm';
+import { errorMessage } from '@shared/api/errors';
+import { useDebounced } from '../../hooks/useDebounced';
+import {
+  useFollowUpSummaryQuery, useGetPublicSettingsQuery, useListFollowUpsQuery, useListLeadsQuery,
+} from '../../redux/services/crmApi';
+import type { FollowUpQuery } from '../../redux/services/crmApi';
+import { FollowUpCard } from './FollowUpCards';
+import { LeadFormSheet } from './LeadFormSheet';
+import { LeadSheet } from './LeadSheet';
 
-const initialAgentLeads: Lead[] = [
-  {
-    id: 'ld_1',
-    leadCode: 'LID-8821',
-    customerName: 'Robert Vance',
-    mobileNumber: '+1 555-0192',
-    email: 'robert@vancecorp.com',
-    city: 'Chicago',
-    state: 'IL',
-    leadSource: 'Field Visit',
-    interestedService: 'Commercial Marketing Bundle',
-    status: 'Interested',
-    remarks: 'Met on-site. Very positive initial presentation.',
-    createdAt: '2026-10-24T10:15:00Z',
-    updatedAt: '2026-10-25T14:30:00Z',
-  },
-  {
-    id: 'ld_3',
-    leadCode: 'LID-8823',
-    customerName: 'Marcus Aurelius',
-    mobileNumber: '+1 555-9921',
-    city: 'New York',
-    state: 'NY',
-    leadSource: 'Referral',
-    interestedService: 'Digital Advertising Strategy',
-    status: 'Converted',
-    remarks: 'Contracts signed. Proceeding with customer onboarding.',
-    createdAt: '2026-10-22T09:00:00Z',
-    updatedAt: '2026-10-26T16:00:00Z',
-  }
+type Tab = 'leads' | 'followups';
+type FuTab = 'overdue' | 'upcoming' | 'completed';
+const FU_TABS: { id: FuTab; label: string; status: NonNullable<FollowUpQuery['status']>; order: 'asc' | 'desc' }[] = [
+  { id: 'overdue', label: 'Overdue', status: 'overdue', order: 'asc' },
+  { id: 'upcoming', label: 'Upcoming', status: 'pending', order: 'asc' },
+  { id: 'completed', label: 'Done', status: 'completed', order: 'desc' },
 ];
 
+const Pager: React.FC<{ page: number; totalPages: number; total: number; onPage: (p: number) => void }> = ({ page, totalPages, total, onPage }) =>
+  totalPages <= 1 ? <p className="text-[11px] text-slate-400 text-center">{total} total</p> : (
+    <div className="flex items-center justify-between text-xs text-slate-500">
+      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className="px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold disabled:opacity-40">Prev</button>
+      <span>Page {page} of {totalPages} · {total} total</span>
+      <button type="button" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold disabled:opacity-40">Next</button>
+    </div>
+  );
+
 export const AgentLeadsPage: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>(initialAgentLeads);
+  const [tab, setTab] = useState<Tab>('leads');
+  const [openLead, setOpenLead] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [status, setStatus] = useState('');
+  const debounced = useDebounced(search.trim());
+  const [fuTab, setFuTab] = useState<FuTab>('overdue');
+  const [fuPage, setFuPage] = useState(1);
+  const fu = FU_TABS.find((t) => t.id === fuTab)!;
 
-  // Form
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('');
-  const [service, setService] = useState('Commercial Marketing Bundle');
-  const [notes, setNotes] = useState('');
+  useEffect(() => setPage(1), [debounced, status]);
+  useEffect(() => setFuPage(1), [fuTab]);
 
-  const handleAddLead = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !phone) return;
+  const { data: settings } = useGetPublicSettingsQuery();
+  const leads = useListLeadsQuery({ page, limit: 10, sort: 'updatedAt', order: 'desc', ...(debounced && { search: debounced }), ...(status && { status }) });
+  const summary = useFollowUpSummaryQuery();
+  const followUps = useListFollowUpsQuery({ page: fuPage, limit: 10, status: fu.status, order: fu.order }, { skip: tab !== 'followups' });
 
-    const newLead: Lead = {
-      id: `ld_${Date.now()}`,
-      leadCode: `LID-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: name,
-      mobileNumber: phone,
-      city: city || 'Local Area',
-      state: 'Territory',
-      leadSource: 'Field Agent Direct',
-      interestedService: service,
-      status: 'New',
-      remarks: notes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setLeads([newLead, ...leads]);
-    setIsAddOpen(false);
-    setName('');
-    setPhone('');
-    setCity('');
-    setNotes('');
-  };
-
-  const filtered = leads.filter(l => 
-    l.customerName.toLowerCase().includes(search.toLowerCase()) ||
-    l.mobileNumber.includes(search)
+  const tabBtn = (t: Tab, label: string, badge?: number) => (
+    <button type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+      className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${tab === t ? 'bg-[#274C77] text-white shadow' : 'text-slate-500'}`}>
+      {label}{badge ? <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px]">{badge}</span> : null}
+    </button>
   );
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Top Header */}
+    <div className="space-y-4 pb-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">My Leads</h1>
-          <p className="text-xs text-slate-500">Your assigned accounts & prospects</p>
+          <h1 className="text-xl font-bold text-slate-900">My leads</h1>
+          <p className="text-xs text-slate-500">Leads assigned to you and your follow-ups</p>
         </div>
-        <button
-          onClick={() => setIsAddOpen(true)}
-          className="flex items-center gap-1 bg-[#274C77] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Lead
-        </button>
+        {settings?.operational.agentsCanCreateLeads && (
+          <button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-white bg-[#274C77] rounded-xl shadow">
+            <Plus className="w-4 h-4" /> New lead
+          </button>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or mobile..."
-          className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#274C77] shadow-sm"
-        />
+      <div role="tablist" className="flex gap-1 bg-slate-100 p-1 rounded-2xl">
+        {tabBtn('leads', 'Leads')}
+        {tabBtn('followups', 'Follow-ups', summary.data?.overdue)}
       </div>
 
-      {/* List */}
-      <div className="space-y-2.5">
-        {filtered.map(lead => {
-          const statusStyle = LEAD_STATUS_CONFIG[lead.status] || {
-            color: 'text-slate-700',
-            bg: 'bg-slate-100 border-slate-200'
-          };
-
-          return (
-            <div
-              key={lead.id}
-              onClick={() => setSelectedLead(lead)}
-              className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex items-center justify-between"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-slate-900">{lead.customerName}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusStyle.bg} ${statusStyle.color}`}>
-                    {lead.status}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                  <span>{lead.mobileNumber}</span>
-                  <span>•</span>
-                  <span>{lead.city}</span>
-                </div>
-                <div className="text-[10px] text-[#274C77] font-medium">
-                  {lead.interestedService}
-                </div>
-              </div>
-
-              <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      {tab === 'leads' ? (
+        <>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input type="search" aria-label="Search leads" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, mobile, city…" className="w-full pl-9 pr-3 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#274C77]" />
             </div>
-          );
-        })}
-      </div>
-
-      {/* Lead Detail Sheet */}
-      {selectedLead && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end">
-          <div className="bg-white w-full rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <span className="text-[10px] font-mono bg-blue-50 text-[#274C77] px-2 py-0.5 rounded">
-                  {selectedLead.leadCode}
-                </span>
-                <h3 className="text-base font-bold text-slate-900 mt-1">{selectedLead.customerName}</h3>
-              </div>
-              <button onClick={() => setSelectedLead(null)} className="p-1 rounded-full text-slate-400">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div>
-                <span className="text-slate-400">Phone:</span>
-                <a href={`tel:${selectedLead.mobileNumber}`} className="font-semibold text-[#274C77] block mt-0.5">
-                  {selectedLead.mobileNumber}
-                </a>
-              </div>
-              <div>
-                <span className="text-slate-400">Service:</span>
-                <p className="font-semibold text-slate-800 mt-0.5">{selectedLead.interestedService}</p>
-              </div>
-              <div>
-                <span className="text-slate-400">Notes:</span>
-                <p className="mt-0.5 p-3 bg-slate-50 rounded-xl text-slate-700 border border-slate-100">
-                  {selectedLead.remarks || 'No notes.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="w-full py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs"
-              >
-                Close
-              </button>
-            </div>
+            <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)} className="text-xs bg-white border border-slate-200 rounded-xl px-2.5">
+              <option value="">All</option>
+              <option value="assigned,contacted,interested,meeting_scheduled">Open</option>
+              {LEAD_STATUSES.filter((s) => s !== 'new').map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}
+            </select>
           </div>
-        </div>
+
+          {leads.isLoading ? <p role="status" className="py-10 text-center text-xs text-slate-500">Loading leads…</p>
+            : leads.isError ? <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-3">{errorMessage(leads.error)} <button type="button" className="underline font-bold" onClick={() => void leads.refetch()}>Retry</button></div>
+            : leads.data!.items.length === 0 ? <div className="py-10 text-center text-xs text-slate-500">{debounced || status ? 'No leads match.' : 'No leads assigned to you yet.'}</div>
+            : (
+              <>
+                <ul className={`space-y-3 transition-opacity ${leads.isFetching ? 'opacity-60' : ''}`} data-testid="lead-list">
+                  {leads.data!.items.map((l) => (
+                    <li key={l.id}>
+                      <button type="button" data-testid="lead-card" onClick={() => setOpenLead(l.id)} className="w-full text-left bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:bg-slate-50">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate">{l.customerName}</p>
+                            <p className="text-[11px] font-mono text-slate-400">{l.leadCode}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1"><LeadStatusBadge status={l.status} /><PriorityBadge priority={l.priority} /></div>
+                        </div>
+                        <div className="mt-2 space-y-1 text-xs text-slate-600">
+                          <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{l.mobileNumber}</p>
+                          <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400" />{l.city}, {l.state} · {l.interestedService}</p>
+                          {l.nextFollowUpAt && (
+                            <p className={`flex items-center gap-1.5 ${l.isFollowUpOverdue ? 'text-red-600 font-semibold' : ''}`}><CalendarClock className="w-3.5 h-3.5" />{formatDateTime(l.nextFollowUpAt)}{l.isFollowUpOverdue ? ' · overdue' : ''}</p>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <Pager page={leads.data!.meta.page} totalPages={leads.data!.meta.totalPages} total={leads.data!.meta.total} onPage={setPage} />
+              </>
+            )}
+        </>
+      ) : (
+        <>
+          <div role="tablist" className="flex gap-2">
+            {FU_TABS.map((t) => (
+              <button key={t.id} type="button" role="tab" aria-selected={fuTab === t.id} onClick={() => setFuTab(t.id)}
+                className={`px-3.5 py-2 text-xs font-bold rounded-full border ${fuTab === t.id ? 'bg-[#274C77] text-white border-[#274C77]' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {t.label}{t.id === 'overdue' && summary.data ? ` (${summary.data.overdue})` : ''}
+              </button>
+            ))}
+          </div>
+          {followUps.isLoading ? <p role="status" className="py-10 text-center text-xs text-slate-500">Loading follow-ups…</p>
+            : followUps.isError ? <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-3">{errorMessage(followUps.error)}</div>
+            : followUps.data!.items.length === 0 ? <div className="py-10 text-center text-xs text-slate-500">Nothing here.</div>
+            : (
+              <>
+                <ul className="space-y-3" data-testid="followup-list">
+                  {followUps.data!.items.map((f) => <FollowUpCard key={f.id} f={f} showLead onOpenLead={setOpenLead} />)}
+                </ul>
+                <Pager page={followUps.data!.meta.page} totalPages={followUps.data!.meta.totalPages} total={followUps.data!.meta.total} onPage={setFuPage} />
+              </>
+            )}
+        </>
       )}
 
-      {/* Add Lead Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end">
-          <div className="bg-white w-full rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Add Field Prospect</h3>
-              <button onClick={() => setIsAddOpen(false)} className="text-slate-400">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddLead} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Customer Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Apex Tech Ltd"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mobile Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 555-0100"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">City / Locality</label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Chicago West"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Service Interest</label>
-                <select
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                >
-                  <option value="Commercial Marketing Bundle">Commercial Marketing</option>
-                  <option value="Enterprise CRM Setup">Enterprise CRM</option>
-                  <option value="Digital Advertising Strategy">Digital Advertising</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Meeting Remarks</label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Key discussion points..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-[#274C77] text-white font-bold rounded-xl text-xs shadow-md mt-2"
-              >
-                Save Prospect
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {creating && <LeadFormSheet onClose={() => setCreating(false)} onSaved={(l) => setOpenLead(l.id)} />}
+      {openLead && <LeadSheet leadId={openLead} onClose={() => setOpenLead(null)} />}
     </div>
   );
 };
-

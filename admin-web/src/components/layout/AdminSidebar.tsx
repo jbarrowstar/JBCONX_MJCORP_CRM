@@ -1,42 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  Network, 
-  MapPin, 
-  Clock, 
-  CalendarCheck, 
-  CheckSquare, 
-  FileCheck2, 
-  BarChart3, 
-  Settings,
-  ShieldCheck
-} from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useAppSelector } from '../../redux/hooks';
 import { CRM_THEMES } from '@shared/constants/themes';
 import { JBConXLogo } from '@shared/components/JBConXLogo';
-
-interface SidebarItem {
-  name: string;
-  path: string;
-  icon: React.ElementType;
-}
-
-const navigationItems: SidebarItem[] = [
-  { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Lead Management', path: '/admin/leads', icon: Users },
-  { name: 'Agent Management', path: '/admin/agents', icon: UserCheck },
-  { name: 'Team Management', path: '/admin/teams', icon: Network },
-  { name: 'Field Tracking', path: '/admin/tracking', icon: MapPin },
-  { name: 'Visits & Attendance', path: '/admin/attendance', icon: Clock },
-  { name: 'Follow-ups & Tasks', path: '/admin/followups', icon: CheckSquare },
-  { name: 'Customer Visits', path: '/admin/visits', icon: CalendarCheck },
-  { name: 'Registration & Onboarding', path: '/admin/onboarding', icon: FileCheck2 },
-  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3 },
-  { name: 'Settings', path: '/admin/settings', icon: Settings },
-];
+import { ROLE_LABELS } from '@shared/auth/roles';
+import { NAV_ITEMS } from './navigation';
 
 export const AdminSidebar: React.FC = () => {
   const { sidebarOpen, theme } = useAppSelector((state) => state.ui);
@@ -56,14 +25,14 @@ export const AdminSidebar: React.FC = () => {
       <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-slate-700" />
-          <span className="text-xs font-bold text-slate-700">{user?.role || 'ADMIN'}</span>
+          <span className="text-xs font-bold text-slate-700">{user ? ROLE_LABELS[user.role] : ''}</span>
         </div>
         <span className="text-[10px] font-bold text-slate-400 font-mono">{themeConfig.badge}</span>
       </div>
 
       {/* Nav List */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {navigationItems.map((item) => {
+        {NAV_ITEMS.filter((item) => !!user && item.roles.includes(user.role)).map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -78,7 +47,12 @@ export const AdminSidebar: React.FC = () => {
               }
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              <span>{item.name}</span>
+              <span className="flex-1">{item.name}</span>
+              {!item.live && (
+                <span title="Preview: sample data, not connected yet" className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                  Preview
+                </span>
+              )}
             </NavLink>
           );
         })}
@@ -91,7 +65,7 @@ export const AdminSidebar: React.FC = () => {
             className="w-9 h-9 rounded-xl text-white font-black flex items-center justify-center text-xs shadow-md"
             style={{ backgroundColor: themeConfig.secondary }}
           >
-            {user?.name?.[0] || 'A'}
+            {user?.name?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>

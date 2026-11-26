@@ -12,16 +12,9 @@ interface NotificationState {
   items: NotificationItem[];
 }
 
+// Starts empty: notifications will come from the backend (not built yet), never from sample data.
 const initialState: NotificationState = {
-  items: [
-    {
-      id: 'notif_1',
-      type: 'info',
-      message: 'New high priority lead assigned: Apex Solutions Ltd.',
-      timestamp: new Date().toISOString(),
-      read: false
-    }
-  ],
+  items: [],
 };
 
 export const notificationSlice = createSlice({

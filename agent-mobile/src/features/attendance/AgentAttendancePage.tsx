@@ -1,115 +1,142 @@
 import React, { useState } from 'react';
-import { 
-  Clock, 
-  MapPin, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ShieldCheck, 
-  Calendar 
-} from 'lucide-react';
+import { LogIn, LogOut, MapPin, Loader2, ShieldAlert } from 'lucide-react';
+import {
+  ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_STYLES, formatCoords, formatDuration, formatTime, mapsUrl, type AttendanceDto,
+} from '@shared/api/fieldwork';
+import { errorMessage, normalizeError } from '@shared/api/errors';
+import { getCurrentLocation } from '../../device/geolocation';
+import type { LocationResult } from '../../device/geolocation';
+import { useAppDispatch } from '../../redux/hooks';
+import { useGetPublicSettingsQuery } from '../../redux/services/crmApi';
+import { useCheckInMutation, useCheckOutMutation, useGetTodayAttendanceQuery, useListMyAttendanceQuery } from '../../redux/services/fieldApi';
+import type { PunchInput } from '../../redux/services/fieldApi';
+import { pushToast } from '../../redux/slices/toastSlice';
+
+type Phase = 'idle' | 'locating' | 'saving';
 
 export const AgentAttendancePage: React.FC = () => {
-  const [isCheckedIn, setIsCheckedIn] = useState(true);
-  const [checkInTime, setCheckInTime] = useState('08:45 AM');
-  const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>({
-    lat: 41.8781,
-    lng: -87.6298,
-  });
-  const [isCapturing, setIsCapturing] = useState(false);
+  const dispatch = useAppDispatch();
+  const today = useGetTodayAttendanceQuery(undefined, { refetchOnMountOrArgChange: true });
+  const history = useListMyAttendanceQuery({ page: 1, limit: 14 }, { refetchOnMountOrArgChange: true });
+  const { data: settings } = useGetPublicSettingsQuery();
+  const [checkIn] = useCheckInMutation();
+  const [checkOut] = useCheckOutMutation();
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [problem, setProblem] = useState<{ message: string; canSkipLocation: boolean; action: 'in' | 'out' } | null>(null);
 
-  const handleToggleAttendance = () => {
-    setIsCapturing(true);
+  const record = today.data;
+  const requireLocation = settings?.attendance ? (settings.attendance as unknown as { requireLocation: boolean }).requireLocation : true;
+  const checkedIn = !!record?.isOpen;
+  const doneToday = !!record && !record.isOpen && record.status !== 'absent' && record.status !== 'on_leave' && !!record.checkOut;
+  const markedByAdmin = !!record && !record.checkIn;
 
-    // Simulate GPS reading via Geolocation API
-    setTimeout(() => {
-      setIsCapturing(false);
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      if (isCheckedIn) {
-        setCheckOutTime(now);
-        setIsCheckedIn(false);
-      } else {
-        setCheckInTime(now);
-        setCheckOutTime(null);
-        setIsCheckedIn(true);
+  const punch = async (action: 'in' | 'out', withLocation: boolean) => {
+    setProblem(null);
+    let body: PunchInput = {};
+    if (withLocation) {
+      setPhase('locating');
+      const loc: LocationResult = await getCurrentLocation();
+      if (!loc.ok) {
+        setPhase('idle');
+        setProblem({ message: loc.message, canSkipLocation: !requireLocation, action });
+        return;
       }
-    }, 700);
+      body = { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy };
+    }
+    setPhase('saving');
+    try {
+      await (action === 'in' ? checkIn(body) : checkOut(body)).unwrap();
+      dispatch(pushToast('success', action === 'in' ? 'You are checked in.' : 'You are checked out.'));
+    } catch (err) {
+      setProblem({ message: normalizeError(err).message, canSkipLocation: false, action });
+    } finally {
+      setPhase('idle');
+    }
   };
 
+  const busy = phase !== 'idle';
+  const pointLine = (p: AttendanceDto['checkIn']) =>
+    p && p.latitude != null && p.longitude != null ? (
+      <a href={mapsUrl(p.latitude, p.longitude)} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-[11px] text-[#274C77]"><MapPin className="w-3 h-3" />{formatCoords(p.latitude, p.longitude)}</a>
+    ) : null;
+
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4 pb-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Shift Attendance</h1>
-        <p className="text-xs text-slate-500">GPS geo-fenced check-in & check-out</p>
+        <h1 className="text-xl font-bold text-slate-900">Attendance</h1>
+        <p className="text-xs text-slate-500">Check in when you start and check out when you finish</p>
       </div>
 
-      {/* Main Action Card */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner transition-colors ${
-          isCheckedIn ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-        }`}>
-          <Clock className="w-10 h-10" />
-        </div>
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4" data-testid="attendance-card">
+        {today.isLoading ? (
+          <p role="status" className="text-xs text-slate-500 text-center py-4">Loading today…</p>
+        ) : today.isError ? (
+          <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-3">{errorMessage(today.error)} <button type="button" className="underline font-bold" onClick={() => void today.refetch()}>Retry</button></div>
+        ) : (
+          <>
+            <div className="text-center">
+              <p data-testid="attendance-status" className="text-lg font-black text-slate-900">
+                {markedByAdmin ? `Marked ${ATTENDANCE_STATUS_LABELS[record!.status].toLowerCase()} by your manager`
+                  : checkedIn ? 'You are checked in'
+                  : doneToday ? 'Shift completed'
+                  : 'Not checked in'}
+              </p>
+              {record?.checkIn && (
+                <p className="text-xs text-slate-500 mt-1">In at <strong>{formatTime(record.checkIn.at)}</strong>{record.checkOut ? <> · Out at <strong>{formatTime(record.checkOut.at)}</strong> · {formatDuration(record.workingMinutes)}</> : null}</p>
+              )}
+              {record?.checkIn && <div className="mt-1">{pointLine(record.checkIn)}</div>}
+              {record?.checkIn?.withinGeofence === false && <p className="text-[11px] text-red-600 mt-1">Recorded outside the office area</p>}
+              {record?.checkIn?.lowAccuracy && <p className="text-[11px] text-amber-700 mt-1">GPS accuracy was low (±{Math.round(record.checkIn.accuracy ?? 0)} m)</p>}
+            </div>
 
-        <div>
-          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-            isCheckedIn ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-          }`}>
-            {isCheckedIn ? 'CURRENTLY ON SHIFT' : 'SHIFT COMPLETED'}
-          </span>
-          <div className="text-2xl font-black text-slate-900 mt-2">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-          </p>
-        </div>
+            {!markedByAdmin && !doneToday && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void punch(checkedIn ? 'out' : 'in', true)}
+                className={`w-full py-4 rounded-2xl text-sm font-black text-white shadow-lg disabled:opacity-60 flex items-center justify-center gap-2 ${checkedIn ? 'bg-rose-600' : 'bg-emerald-600'}`}
+              >
+                {busy ? <><Loader2 className="w-4 h-4 animate-spin" />{phase === 'locating' ? 'Finding your location…' : 'Saving…'}</> : checkedIn ? <><LogOut className="w-5 h-5" />Check out</> : <><LogIn className="w-5 h-5" />Check in</>}
+              </button>
+            )}
 
-        {/* GPS Verification Badge */}
-        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-slate-700">
-            <MapPin className="w-3.5 h-3.5 text-[#274C77]" />
-            <span>Capacitor Geolocation Status:</span>
-          </div>
-          <div className="text-[11px] text-slate-500 font-mono">
-            Lat: {currentCoords?.lat} • Lng: {currentCoords?.lng}
-          </div>
-          <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> Geofence authorized within commercial zone
-          </div>
-        </div>
-
-        <button
-          onClick={handleToggleAttendance}
-          disabled={isCapturing}
-          className={`w-full py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 text-white ${
-            isCheckedIn ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#274C77] hover:bg-[#1B3B6F]'
-          }`}
-        >
-          {isCapturing ? (
-            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <span>{isCheckedIn ? 'Punch Check-Out' : 'Punch Check-In'}</span>
-          )}
-        </button>
+            {problem && (
+              <div role="alert" className="bg-rose-50 border border-rose-200 rounded-2xl p-3 text-xs text-rose-800 space-y-2" data-testid="attendance-problem">
+                <p className="flex items-start gap-2"><ShieldAlert className="w-4 h-4 flex-shrink-0 mt-px" />{problem.message}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => void punch(problem.action, true)} disabled={busy} className="px-3 py-1.5 font-bold bg-white border border-rose-200 rounded-lg">Try again</button>
+                  {problem.canSkipLocation && (
+                    <button type="button" onClick={() => void punch(problem.action, false)} disabled={busy} className="px-3 py-1.5 font-bold bg-white border border-rose-200 rounded-lg">Continue without location</button>
+                  )}
+                </div>
+                {!problem.canSkipLocation && requireLocation && <p className="text-[11px] text-rose-700">Your organisation requires a location for attendance.</p>}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Today summary */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Today's Timesheet</h2>
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="p-3 bg-slate-50 rounded-xl">
-            <span className="text-slate-400 font-medium">Check-In</span>
-            <div className="text-sm font-bold text-slate-800 mt-0.5">{checkInTime || '-'}</div>
-          </div>
-          <div className="p-3 bg-slate-50 rounded-xl">
-            <span className="text-slate-400 font-medium">Check-Out</span>
-            <div className="text-sm font-bold text-slate-800 mt-0.5">{checkOutTime || 'In Progress'}</div>
-          </div>
-        </div>
-      </div>
+      <section>
+        <h2 className="text-xs font-bold text-slate-800 mb-2">Recent days</h2>
+        {history.isLoading ? <p className="text-xs text-slate-400">Loading…</p> : history.data!.items.length === 0 ? (
+          <p className="text-xs text-slate-400">No attendance recorded yet.</p>
+        ) : (
+          <ul className="space-y-2" data-testid="attendance-history">
+            {history.data!.items.map((r) => (
+              <li key={r.id} data-testid="attendance-history-row" className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{r.date}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {r.checkIn ? `${formatTime(r.checkIn.at)} – ${r.checkOut ? formatTime(r.checkOut.at) : 'still in'}` : r.remarks ?? 'Marked by manager'}
+                    {r.checkOut ? ` · ${formatDuration(r.workingMinutes)}` : ''}
+                  </p>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ATTENDANCE_STATUS_STYLES[r.status]}`}>{ATTENDANCE_STATUS_LABELS[r.status]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };
-
